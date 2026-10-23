@@ -154,10 +154,52 @@
             showToast('リセットしました');
         };
 
-        // ピン位置（店舗ごとの緯度経度）。日付が変わっても残す
+        // 全端末共通のピン位置。「ピンをコピー」で書き出した内容をここに貼ると、どの端末でも使われる
+        const SHARED_PINS = {};
+
+        // この端末で修正したピン位置（店舗ごとの緯度経度）。日付が変わっても残す
         const PIN_KEY = 'delivery-route-pins-v1';
         let pins = {};
         try { pins = JSON.parse(localStorage.getItem(PIN_KEY)) || {}; } catch (e) {}
+
+        function getPin(id) {
+            return pins[id] || SHARED_PINS[id] || null;
+        }
+
+        const PIN_EXPORT_PREFIX = '配送ルートピン:';
+
+        window.exportPins = function() {
+            const all = Object.assign({}, SHARED_PINS, pins);
+            if (!Object.keys(all).length) {
+                showToast('保存されたピンがありません');
+                return;
+            }
+            executeCopy(PIN_EXPORT_PREFIX + JSON.stringify(all));
+        };
+
+        window.importPins = function() {
+            const text = prompt('他の端末でコピーしたピンのデータを貼り付けてください');
+            if (!text) return;
+            let data;
+            try {
+                data = JSON.parse(text.trim().replace(PIN_EXPORT_PREFIX, ''));
+            } catch (e) {
+                showToast('読み込めませんでした。コピーした文字をそのまま貼り付けてください。');
+                return;
+            }
+            let count = 0;
+            Object.keys(data || {}).forEach(id => {
+                const pin = data[id];
+                const lat = Number(pin && pin.lat), lng = Number(pin && pin.lng);
+                if (Number.isFinite(lat) && Number.isFinite(lng) && initialDeliveryData.some(i => String(i.id) === id)) {
+                    pins[id] = { lat, lng };
+                    count++;
+                }
+            });
+            savePins();
+            render();
+            showToast(count ? `${count}件のピンを読み込みました` : '読み込めるピンがありませんでした');
+        };
 
         function savePins() {
             try { localStorage.setItem(PIN_KEY, JSON.stringify(pins)); } catch (e) {}
@@ -177,9 +219,10 @@
             pinEditingId = id;
             document.getElementById('pin-title').innerText = `${item.name} のピン位置`;
             document.getElementById('pin-reset').style.display = pins[id] ? '' : 'none';
+            const current = getPin(id);
             document.getElementById('pin-modal').classList.remove('hidden');
 
-            const start = pins[id] ? [pins[id].lat, pins[id].lng] : DEFAULT_CENTER;
+            const start = current ? [current.lat, current.lng] : DEFAULT_CENTER;
             if (!pinMap) {
                 pinMap = L.map('pin-map');
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -190,11 +233,11 @@
                 pinMap.on('click', e => pinMarker.setLatLng(e.latlng));
             }
             pinMarker.setLatLng(start);
-            pinMap.setView(start, pins[id] ? 18 : 15);
+            pinMap.setView(start, current ? 18 : 15);
             setTimeout(() => pinMap.invalidateSize(), 50);
 
             // 未設定なら現在地から始める（店の前で開くことを想定）
-            if (!pins[id]) pinToCurrentLocation(true);
+            if (!current) pinToCurrentLocation(true);
         };
 
         window.pinToCurrentLocation = function(silent) {
@@ -230,7 +273,7 @@
             savePins();
             closePinEditor();
             render();
-            showToast('住所での案内に戻しました');
+            showToast(SHARED_PINS[pinEditingId] ? '共通のピン位置に戻しました' : '住所での案内に戻しました');
         };
 
         // 初期化
@@ -482,7 +525,7 @@
                 const isSkipped = status === 'skipped' || isAutoSkipped;
                 const isCollapsed = isCompleted || isSkipped;
                 // 車ルートでナビを即開始（スマホの Google マップアプリで開く）
-                const pin = pins[item.id];
+                const pin = getPin(item.id);
                 const destination = pin ? `${pin.lat},${pin.lng}` : '東京都' + item.address;
                 const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving&dir_action=navigate`;
 
@@ -750,6 +793,15 @@
                                     ${tableHTML}
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200 no-print">
+                            <h3 class="text-sm font-bold text-gray-800 mb-1">📌 ピン位置を他の端末と共有</h3>
+                            <p class="text-xs text-gray-500 mb-3">「コピー」した文字をLINE等で送り、別の端末で「読み込む」に貼り付けてください。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="exportPins()" class="py-2.5 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 font-bold text-sm">ピンをコピー</button>
+                                <button onclick="importPins()" class="py-2.5 rounded-lg bg-white text-gray-700 border border-gray-300 font-bold text-sm">ピンを読み込む</button>
+                            </div>
                         </div>
 
                         <button onclick="resetToday()" class="w-full py-3 rounded-xl bg-white text-red-600 border border-red-200 font-bold shadow-sm no-print">
