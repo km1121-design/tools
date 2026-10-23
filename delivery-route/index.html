@@ -165,9 +165,14 @@
             saveState();
         };
 
+        // 箱数0の店舗は自動で「配送なし」扱い
+        function isDelivering(item) {
+            return itemStatuses[item.id] !== 'skipped' && (quantities[item.id] || 0) > 0;
+        }
+
         function collectionTotal() {
             return routeList.reduce((sum, item) => (
-                item.payment && itemStatuses[item.id] !== 'skipped' ? sum + (collections[item.id] || 0) : sum
+                item.payment && isDelivering(item) ? sum + (collections[item.id] || 0) : sum
             ), 0);
         }
 
@@ -196,7 +201,7 @@
             let activeCount = 0;
             let totalB = 0;
             routeList.forEach((item) => {
-                if (itemStatuses[item.id] !== 'skipped') {
+                if (isDelivering(item)) {
                     const q = quantities[item.id] || 0;
                     text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''}\n`;
                     order++;
@@ -216,7 +221,7 @@
             let completedCount = 0;
             let totalB = 0;
             routeList.forEach((item) => {
-                if (itemStatuses[item.id] !== 'skipped') {
+                if (isDelivering(item)) {
                     const q = quantities[item.id] || 0;
                     const mark = itemStatuses[item.id] === 'completed' ? '完了' : '未完';
                     text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''} [${mark}]\n`;
@@ -270,7 +275,7 @@
             let completedCount = 0;
             let totalB = 0;
             routeList.forEach(item => {
-                if (itemStatuses[item.id] !== 'skipped') {
+                if (isDelivering(item)) {
                     activeCount++;
                     totalB += (quantities[item.id] || 0);
                     if (itemStatuses[item.id] === 'completed') completedCount++;
@@ -317,8 +322,9 @@
             routeList.forEach((item, index) => {
                 const q = quantities[item.id] || 0;
                 const status = itemStatuses[item.id];
-                const isSkipped = status === 'skipped';
                 const isCompleted = status === 'completed';
+                const isAutoSkipped = q === 0 && status !== 'skipped' && !isCompleted;
+                const isSkipped = status === 'skipped' || isAutoSkipped;
                 const isCollapsed = isCompleted || isSkipped;
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('東京都' + item.address)}`;
 
@@ -339,7 +345,14 @@
                                 </div>
                 `;
 
-                if (!isEditMode) {
+                if (!isEditMode && isAutoSkipped) {
+                    html += `
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-xs font-bold text-gray-500">0箱・配送なし</span>
+                                    <button onclick="changeQty(${item.id}, 1)" class="w-9 h-9 rounded-full bg-blue-500 text-white text-xl font-bold flex items-center justify-center shadow-sm" title="箱を追加">+</button>
+                                </div>
+                    `;
+                } else if (!isEditMode) {
                     html += `
                                 <div class="flex items-center gap-2 shrink-0">
                                     <button onclick="setStatus(${item.id}, 'skipped')" class="px-3 py-1.5 rounded text-xs font-bold transition-colors ${isSkipped ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600'}">
@@ -420,29 +433,29 @@
             let tableHTML = '';
             const today = new Date().toLocaleDateString('ja-JP');
 
-            routeList.forEach((item, index) => {
-                const status = itemStatuses[item.id];
-                const isSkipped = status === 'skipped';
-                const isCompleted = status === 'completed';
+            routeList.filter(isDelivering).forEach((item, index) => {
+                const isCompleted = itemStatuses[item.id] === 'completed';
                 const q = quantities[item.id] || 0;
 
-                if (!isSkipped) {
-                    activeCount++;
-                    totalB += q;
-                    if (isCompleted) completedCount++;
-                }
+                activeCount++;
+                totalB += q;
+                if (isCompleted) completedCount++;
 
                 tableHTML += `
-                    <tr class="border-b border-gray-200 ${isSkipped ? 'text-gray-400 bg-gray-50' : ''}">
+                    <tr class="border-b border-gray-200">
                         <td class="p-2">${index + 1}</td>
-                        <td class="p-2 font-bold">${item.name}${item.payment && !isSkipped ? ' <span class="text-xs text-red-600">💴集金' + (collections[item.id] ? ' ' + yen(collections[item.id]) : '') + '</span>' : ''}</td>
-                        <td class="p-2 text-center tabular-nums">${isSkipped ? '-' : q}</td>
+                        <td class="p-2 font-bold">${item.name}${item.payment ? ' <span class="text-xs text-red-600">💴集金' + (collections[item.id] ? ' ' + yen(collections[item.id]) : '') + '</span>' : ''}</td>
+                        <td class="p-2 text-center tabular-nums">${q}</td>
                         <td class="p-2 text-center text-xs font-bold">
-                            ${isSkipped ? 'ナシ' : isCompleted ? '<span class="text-green-600">完了</span>' : '<span class="text-red-500">未完</span>'}
+                            ${isCompleted ? '<span class="text-green-600">完了</span>' : '<span class="text-red-500">未完</span>'}
                         </td>
                     </tr>
                 `;
             });
+
+            if (!tableHTML) {
+                tableHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">箱数が入力された納品先はありません</td></tr>`;
+            }
 
             return `
                 <div class="max-w-md mx-auto min-h-screen bg-gray-50 print-bg" id="report-section">
