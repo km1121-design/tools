@@ -79,6 +79,7 @@
         let quantities = {};
         let itemStatuses = {};
         let collections = {}; // 集金額（円）
+        let received = {}; // お預かり額（円）
         let isEditMode = false;
         let showReport = false;
         let showSkipped = false;
@@ -97,7 +98,8 @@
                     order: routeList.map(item => item.id),
                     quantities,
                     itemStatuses,
-                    collections
+                    collections,
+                    received
                 }));
             } catch (e) {}
         }
@@ -118,6 +120,7 @@
                 quantities = saved.quantities || {};
                 itemStatuses = saved.itemStatuses || {};
                 collections = saved.collections || {};
+                received = saved.received || {};
             }
         }
 
@@ -126,6 +129,7 @@
             quantities = {};
             itemStatuses = {};
             collections = {};
+            received = {};
             render();
             showToast('リセットしました');
         };
@@ -164,12 +168,40 @@
             return '¥' + (n || 0).toLocaleString('ja-JP');
         }
 
-        // 入力中は再描画しない（フォーカスが外れないように）。確定時に再描画して合計を更新
-        window.inputCollection = function(id, value) {
+        // 入力中は再描画しない（フォーカスが外れないように）。合計は次の再描画時に反映
+        function parseYen(value) {
             const n = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
-            if (n > 0) collections[id] = n; else delete collections[id];
+            return n > 0 ? n : 0;
+        }
+
+        window.inputCollection = function(id, value) {
+            const n = parseYen(value);
+            if (n) collections[id] = n; else delete collections[id];
             saveState();
+            updateChange(id);
         };
+
+        window.inputReceived = function(id, value) {
+            const n = parseYen(value);
+            if (n) received[id] = n; else delete received[id];
+            saveState();
+            updateChange(id);
+        };
+
+        // おつり表示（お預かり − 集金額）
+        function changeHTML(id) {
+            const amount = collections[id] || 0;
+            const got = received[id] || 0;
+            if (!amount || !got) return '<span class="text-gray-400">お預かり額を入れると計算します</span>';
+            const diff = got - amount;
+            if (diff >= 0) return `おつり <span class="text-2xl text-green-700 tabular-nums">${yen(diff)}</span>`;
+            return `<span class="text-red-600">不足 <span class="text-2xl tabular-nums">${yen(-diff)}</span></span>`;
+        }
+
+        function updateChange(id) {
+            const el = document.getElementById('change-' + id);
+            if (el) el.innerHTML = changeHTML(id);
+        }
 
         // 箱数0の店舗は自動で「配送なし」扱い
         function isDelivering(item) {
@@ -230,14 +262,27 @@
                 if (isDelivering(item)) {
                     const q = quantities[item.id] || 0;
                     const mark = itemStatuses[item.id] === 'completed' ? '完了' : '未完';
-                    text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''} [${mark}]\n`;
+                    text += `${order}. ${item.name}: ${q}箱 [${mark}]\n`;
                     if (itemStatuses[item.id] === 'completed') completedCount++;
                     order++;
                     activeCount++;
                     totalB += q;
                 }
             });
-            text += `\n配送完了件数: ${completedCount}/${activeCount}件\n総納品数: ${totalB} 箱\n集金合計: ${yen(collectionTotal())}\n\nお疲れ様でした。`;
+            text += `\n配送完了件数: ${completedCount}/${activeCount}件\n総納品数: ${totalB} 箱\n`;
+
+            const payItems = routeList.filter(item => item.payment && isDelivering(item));
+            if (payItems.length) {
+                text += `\n【集金】\n`;
+                payItems.forEach(item => {
+                    const amount = collections[item.id] ? yen(collections[item.id]) : '金額未入力';
+                    const mark = itemStatuses[item.id] === 'completed' ? '' : ' [未完]';
+                    text += `${item.name}: ${amount}${mark}\n`;
+                });
+                text += `集金合計: ${yen(collectionTotal())}\n`;
+            }
+
+            text += `\nお疲れ様でした。`;
             executeCopy(text);
         };
 
@@ -414,15 +459,27 @@
                     `;
                     if (item.payment) {
                         html += `
-                                <label class="flex items-center justify-between bg-red-50 p-3 rounded-lg mb-3 border border-red-200">
-                                    <span class="text-red-700 font-bold text-sm">💴 集金額</span>
-                                    <span class="flex items-center gap-1 text-xl font-bold">
-                                        ¥<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"
-                                            value="${collections[item.id] ? collections[item.id].toLocaleString('ja-JP') : ''}"
-                                            oninput="inputCollection(${item.id}, this.value)" onchange="render()" ${isEditMode ? 'disabled' : ''}
-                                            class="w-32 text-right bg-white border border-red-300 rounded-lg px-2 py-1.5 tabular-nums">
-                                    </span>
-                                </label>
+                                <div class="bg-red-50 p-3 rounded-lg mb-3 border border-red-200 space-y-2">
+                                    <label class="flex items-center justify-between">
+                                        <span class="text-red-700 font-bold text-sm">💴 集金額</span>
+                                        <span class="flex items-center gap-1 text-xl font-bold">
+                                            ¥<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"
+                                                value="${collections[item.id] ? collections[item.id].toLocaleString('ja-JP') : ''}"
+                                                oninput="inputCollection(${item.id}, this.value)" ${isEditMode ? 'disabled' : ''}
+                                                class="w-32 text-right bg-white border border-red-300 rounded-lg px-2 py-1.5 tabular-nums">
+                                        </span>
+                                    </label>
+                                    <label class="flex items-center justify-between">
+                                        <span class="text-gray-700 font-bold text-sm">お預かり</span>
+                                        <span class="flex items-center gap-1 text-xl font-bold">
+                                            ¥<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"
+                                                value="${received[item.id] ? received[item.id].toLocaleString('ja-JP') : ''}"
+                                                oninput="inputReceived(${item.id}, this.value)" ${isEditMode ? 'disabled' : ''}
+                                                class="w-32 text-right bg-white border border-gray-300 rounded-lg px-2 py-1.5 tabular-nums">
+                                        </span>
+                                    </label>
+                                    <div id="change-${item.id}" class="text-right text-sm font-bold pt-2 border-t border-red-200">${changeHTML(item.id)}</div>
+                                </div>
                         `;
                     }
                     if (item.timeLimit) {
