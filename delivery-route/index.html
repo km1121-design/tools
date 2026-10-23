@@ -335,7 +335,7 @@
                             <div class="flex justify-between items-center ${!isCollapsed ? 'mb-3' : ''}">
                                 <div class="flex items-center gap-2 overflow-hidden">
                                     <span class="text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${isSkipped ? 'bg-gray-400' : isCompleted ? 'bg-green-500' : 'bg-blue-500'}">
-                                        ${item.id}
+                                        ${index + 1}
                                     </span>
                                     <h2 class="text-lg font-bold truncate ${isSkipped ? 'line-through text-gray-500' : isCompleted ? 'text-gray-700' : 'text-gray-900'}">
                                         ${item.name}
