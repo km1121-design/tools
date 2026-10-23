@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "invoice-tool/**"
+      - "delivery-route/**"
       - "dashboard/**"
       - "pages-root/**"
       - ".github/workflows/deploy-pages.yml"
@@ -50,6 +51,8 @@ jobs:
           cp -r pages-root/. _site/
           mkdir -p _site/invoice-tool
           cp -r invoice-tool/. _site/invoice-tool/
+          mkdir -p _site/delivery-route
+          cp -r delivery-route/. _site/delivery-route/
           mkdir -p _site/dashboard
           cp -r dashboard/dist/. _site/dashboard/
 
