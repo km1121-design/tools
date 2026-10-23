@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>配送ルート管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body {
             font-family: 'Inter', 'Noto Sans JP', sans-serif;
@@ -43,6 +45,24 @@
 </head>
 <body>
     <div id="app"></div>
+    <!-- ピン位置の修正 -->
+    <div id="pin-modal" class="hidden fixed inset-0 z-40 bg-black/60 flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden">
+            <div class="p-4 pb-2">
+                <h2 class="text-lg font-bold" id="pin-title">ピン位置の修正</h2>
+                <p class="text-xs text-gray-500 mt-1">地図をタップするか、ピンをドラッグして納品先の位置に合わせてください。</p>
+            </div>
+            <div id="pin-map" style="height: 55vh;"></div>
+            <div class="p-4 space-y-2">
+                <button onclick="pinToCurrentLocation()" class="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold">📍 現在地に合わせる</button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="closePinEditor()" class="py-3 rounded-xl bg-white border border-gray-300 text-gray-700 font-bold">キャンセル</button>
+                    <button onclick="savePin()" class="py-3 rounded-xl bg-blue-600 text-white font-bold">この位置で保存</button>
+                </div>
+                <button id="pin-reset" onclick="resetPin()" class="w-full py-2 text-xs font-bold text-red-500 underline">ピンを削除して住所で案内に戻す</button>
+            </div>
+        </div>
+    </div>
     <div id="toast">コピーしました！LINE等に貼り付けてください。</div>
 
     <script>
@@ -132,6 +152,85 @@
             received = {};
             render();
             showToast('リセットしました');
+        };
+
+        // ピン位置（店舗ごとの緯度経度）。日付が変わっても残す
+        const PIN_KEY = 'delivery-route-pins-v1';
+        let pins = {};
+        try { pins = JSON.parse(localStorage.getItem(PIN_KEY)) || {}; } catch (e) {}
+
+        function savePins() {
+            try { localStorage.setItem(PIN_KEY, JSON.stringify(pins)); } catch (e) {}
+        }
+
+        let pinMap = null;
+        let pinMarker = null;
+        let pinEditingId = null;
+        const DEFAULT_CENTER = [35.6812, 139.7671]; // 東京駅
+
+        window.openPinEditor = function(id) {
+            if (!window.L) {
+                showToast('地図を読み込めませんでした。通信状況を確認してください。');
+                return;
+            }
+            const item = routeList.find(i => i.id === id);
+            pinEditingId = id;
+            document.getElementById('pin-title').innerText = `${item.name} のピン位置`;
+            document.getElementById('pin-reset').style.display = pins[id] ? '' : 'none';
+            document.getElementById('pin-modal').classList.remove('hidden');
+
+            const start = pins[id] ? [pins[id].lat, pins[id].lng] : DEFAULT_CENTER;
+            if (!pinMap) {
+                pinMap = L.map('pin-map');
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(pinMap);
+                pinMarker = L.marker(start, { draggable: true }).addTo(pinMap);
+                pinMap.on('click', e => pinMarker.setLatLng(e.latlng));
+            }
+            pinMarker.setLatLng(start);
+            pinMap.setView(start, pins[id] ? 18 : 15);
+            setTimeout(() => pinMap.invalidateSize(), 50);
+
+            // 未設定なら現在地から始める（店の前で開くことを想定）
+            if (!pins[id]) pinToCurrentLocation(true);
+        };
+
+        window.pinToCurrentLocation = function(silent) {
+            if (!navigator.geolocation) {
+                if (!silent) showToast('現在地を取得できません');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(pos => {
+                const ll = [pos.coords.latitude, pos.coords.longitude];
+                pinMarker.setLatLng(ll);
+                pinMap.setView(ll, 18);
+            }, () => {
+                if (!silent) showToast('現在地を取得できませんでした（位置情報の許可を確認してください）');
+            }, { enableHighAccuracy: true, timeout: 10000 });
+        };
+
+        window.closePinEditor = function() {
+            document.getElementById('pin-modal').classList.add('hidden');
+            pinEditingId = null;
+        };
+
+        window.savePin = function() {
+            const ll = pinMarker.getLatLng();
+            pins[pinEditingId] = { lat: +ll.lat.toFixed(6), lng: +ll.lng.toFixed(6) };
+            savePins();
+            closePinEditor();
+            render();
+            showToast('ピン位置を保存しました');
+        };
+
+        window.resetPin = function() {
+            delete pins[pinEditingId];
+            savePins();
+            closePinEditor();
+            render();
+            showToast('住所での案内に戻しました');
         };
 
         // 初期化
@@ -383,7 +482,9 @@
                 const isSkipped = status === 'skipped' || isAutoSkipped;
                 const isCollapsed = isCompleted || isSkipped;
                 // 車ルートでナビを即開始（スマホの Google マップアプリで開く）
-                const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('東京都' + item.address)}&travelmode=driving&dir_action=navigate`;
+                const pin = pins[item.id];
+                const destination = pin ? `${pin.lat},${pin.lng}` : '東京都' + item.address;
+                const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving&dir_action=navigate`;
 
                 html += `
                     <div class="bg-white rounded-xl shadow-sm transition-all duration-300 border-l-4 overflow-hidden
@@ -444,10 +545,15 @@
                                     ${item.frequency ? `<span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">頻度: ${item.frequency}</span>` : ''}
                                     ${item.payment ? `<span class="bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded">💴 ${item.payment}あり</span>` : ''}
                                 </div>
-                                <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="w-full text-left flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2.5 rounded-lg mb-3 block no-underline">
-                                    📍 <span class="flex-1 truncate">${item.address}</span>
-                                    <span class="shrink-0 text-xs font-bold text-white bg-blue-600 px-2.5 py-1 rounded-full">🚗 ナビ開始</span>
-                                </a>
+                                <div class="flex items-stretch gap-2 mb-3">
+                                    <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 min-w-0 text-left flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2.5 rounded-lg no-underline">
+                                        ${pin ? '📌' : '📍'} <span class="flex-1 truncate">${item.address}</span>
+                                        <span class="shrink-0 text-xs font-bold text-white bg-blue-600 px-2.5 py-1 rounded-full">🚗 ナビ開始</span>
+                                    </a>
+                                    <button onclick="openPinEditor(${item.id})" class="shrink-0 px-2.5 rounded-lg text-xs font-bold border ${pin ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-white text-gray-500 border-gray-200'}">
+                                        ${pin ? 'ピン<br>設定済' : 'ピン<br>修正'}
+                                    </button>
+                                </div>
                                 <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg mb-3 border border-gray-100">
                                     <span class="text-gray-700 font-bold text-sm">納品箱数</span>
                                     <div class="flex items-center gap-4">
