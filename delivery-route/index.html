@@ -81,8 +81,53 @@
         let isEditMode = false;
         let showReport = false;
 
+        // 保存（このデバイスのブラウザに保存。日付が変わったら箱数・状況はリセット、順序は引き継ぐ）
+        const STORAGE_KEY = 'delivery-route-state-v1';
+
+        function todayKey() {
+            return new Date().toLocaleDateString('ja-JP');
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    date: todayKey(),
+                    order: routeList.map(item => item.id),
+                    quantities,
+                    itemStatuses
+                }));
+            } catch (e) {}
+        }
+
+        function loadState() {
+            let saved;
+            try {
+                saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            } catch (e) {}
+            if (!saved) return;
+            if (Array.isArray(saved.order)) {
+                const byId = new Map(initialDeliveryData.map(item => [item.id, item]));
+                const ordered = saved.order.filter(id => byId.has(id)).map(id => byId.get(id));
+                const rest = initialDeliveryData.filter(item => !saved.order.includes(item.id));
+                routeList = JSON.parse(JSON.stringify(ordered.concat(rest)));
+            }
+            if (saved.date === todayKey()) {
+                quantities = saved.quantities || {};
+                itemStatuses = saved.itemStatuses || {};
+            }
+        }
+
+        window.resetToday = function() {
+            if (!confirm('本日の箱数・完了状況をすべてリセットしますか？')) return;
+            quantities = {};
+            itemStatuses = {};
+            render();
+            showToast('リセットしました');
+        };
+
         // 初期化
         function init() {
+            loadState();
             render();
         }
 
@@ -190,6 +235,7 @@
 
         // 描画処理
         function render() {
+            saveState();
             const app = document.getElementById('app');
             if (showReport) {
                 app.innerHTML = renderReportHTML();
@@ -396,7 +442,7 @@
                             </button>
                         </div>
 
-                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-4">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-100 text-gray-600 text-xs">
                                     <tr>
@@ -411,6 +457,10 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <button onclick="resetToday()" class="w-full py-3 rounded-xl bg-white text-red-600 border border-red-200 font-bold shadow-sm no-print">
+                            本日の記録をリセット
+                        </button>
                     </main>
                 </div>
             `;
