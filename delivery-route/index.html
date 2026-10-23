@@ -81,6 +81,7 @@
         let collections = {}; // 集金額（円）
         let isEditMode = false;
         let showReport = false;
+        let showSkipped = false;
 
         // 保存（このデバイスのブラウザに保存。日付が変わったら箱数・状況はリセット、順序は引き継ぐ）
         const STORAGE_KEY = 'delivery-route-state-v1';
@@ -136,6 +137,11 @@
         }
 
         // アクション関数
+        window.toggleSkipped = function() {
+            showSkipped = !showSkipped;
+            render();
+        };
+
         window.toggleEdit = function() {
             isEditMode = !isEditMode;
             render();
@@ -319,7 +325,12 @@
                 `;
             }
 
-            routeList.forEach((item, index) => {
+            // 表示用の配送番号（箱数1以上・配送なしでない店舗だけをルート順に数える）
+            const numbers = {};
+            routeList.filter(isDelivering).forEach((item, i) => { numbers[item.id] = i + 1; });
+
+            const renderCard = (item, index, number) => {
+                let html = '';
                 const q = quantities[item.id] || 0;
                 const status = itemStatuses[item.id];
                 const isCompleted = status === 'completed';
@@ -335,7 +346,7 @@
                             <div class="flex justify-between items-center ${!isCollapsed ? 'mb-3' : ''}">
                                 <div class="flex items-center gap-2 overflow-hidden">
                                     <span class="text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${isSkipped ? 'bg-gray-400' : isCompleted ? 'bg-green-500' : 'bg-blue-500'}">
-                                        ${index + 1}
+                                        ${number || '-'}
                                     </span>
                                     <h2 class="text-lg font-bold truncate ${isSkipped ? 'line-through text-gray-500' : isCompleted ? 'text-gray-700' : 'text-gray-900'}">
                                         ${item.name}
@@ -432,7 +443,56 @@
                     html += `</div>`; // end not collapsed content
                 }
                 html += `</div></div>`; // end card
-            });
+                return html;
+            };
+
+            if (isEditMode) {
+                // 順序変更中は全店舗をルート順に表示
+                routeList.forEach((item, index) => { html += renderCard(item, index, numbers[item.id]); });
+            } else {
+                // 未完了 → 完了 → 配送なし（折りたたみ）の順に表示
+                const pending = [], done = [], skipped = [];
+                routeList.forEach((item, index) => {
+                    const entry = [item, index];
+                    if (!isDelivering(item)) skipped.push(entry);
+                    else if (itemStatuses[item.id] === 'completed') done.push(entry);
+                    else pending.push(entry);
+                });
+
+                pending.forEach(([item, index]) => { html += renderCard(item, index, numbers[item.id]); });
+
+                if (pending.length === 0 && done.length === 0) {
+                    html += `
+                        <div class="bg-blue-50 text-blue-800 p-4 rounded-xl mb-4 text-sm font-bold border border-blue-200 text-center">
+                            配送する店舗がありません。<br>下の「配送なし」の一覧から、箱数を入れる店舗の「+」を押してください。
+                        </div>
+                    `;
+                } else if (pending.length === 0) {
+                    html += `
+                        <div class="bg-green-50 text-green-800 p-4 rounded-xl mb-4 text-sm font-bold border border-green-200 text-center">
+                            🎉 すべての配送が完了しました
+                        </div>
+                    `;
+                }
+
+                if (done.length) {
+                    html += `<h3 class="text-xs font-bold text-green-700 mt-6 mb-2">✓ 完了（${done.length}件）</h3>`;
+                    done.forEach(([item, index]) => { html += renderCard(item, index, numbers[item.id]); });
+                }
+
+                if (skipped.length) {
+                    const open = showSkipped || (pending.length === 0 && done.length === 0);
+                    html += `
+                        <button onclick="toggleSkipped()" class="w-full mt-6 mb-2 py-2.5 px-3 rounded-lg bg-gray-200 text-gray-600 text-sm font-bold flex justify-between items-center">
+                            <span>配送なし（${skipped.length}件）</span>
+                            <span>${open ? '閉じる ▲' : '表示 ▼'}</span>
+                        </button>
+                    `;
+                    if (open) {
+                        skipped.forEach(([item, index]) => { html += renderCard(item, index, null); });
+                    }
+                }
+            }
 
             html += `</main></div>`;
             return html;
