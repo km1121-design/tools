@@ -48,30 +48,30 @@
     <script>
         // 納品先データ
         const initialDeliveryData = [
-            { id: 1, name: "白種", address: "銀座7-2-16-6階", note: "人が居たら店内へ(指示有り)、居なければEV降りて左側に置く。直送納品されている場合の発泡もあれば回収。", timeLimit: "" },
-            { id: 2, name: "エスペロ", address: "銀座5-6-10 B1F", note: "店内調理場まで、中身だけ。", timeLimit: "" },
-            { id: 3, name: "わびさび本店", address: "新橋2-9-6烏森神社ビル3F", note: "人がいれば店内入って正面のキッチンに中身だけ、いなければEV降りて右側に置く。", timeLimit: "" },
-            { id: 4, name: "福炎や", address: "新橋2-9-6烏森神社ビル4F", note: "中身+氷もお渡し。●氷お渡しを基本この店舗のみ", timeLimit: "" },
-            { id: 5, name: "ダイヤモンドフィッシュ", address: "新橋2-9-6烏森神社ビル5F", note: "人がいれば中身だけ、いなければEV降りて左側に置く", timeLimit: "" },
-            { id: 6, name: "ひろ", address: "新橋2-2-4バイオニアビル3F", note: "人がいれば店内カウンターへ中身だけ、居なければEV降りて左側に置く。前日の発泡あれば回収。", timeLimit: "" },
-            { id: 7, name: "多助", address: "新橋3-2-3ルグランシェビル2F", note: "店内入って直ぐの御座敷前で確認。量によってはそのまま中身をもっていく場合と、発泡ごと一旦廚房へもっていき中身を取り出したのち、発泡(+氷)をもらう場合あり。(指示に従う)店外奥に発泡ある場合があるので確認", timeLimit: "" },
-            { id: 8, name: "のとじ 能登治", address: "新橋3-7-5能登治ビル1F", note: "地下に降り、中身だけ。蒲鉾は右側冷蔵庫中段、冷凍エビは左側冷凍庫に先入れ先出し。伝票はマグネットで挟む。納品後1階へ声掛け。", timeLimit: "" },
-            { id: 9, name: "Hachi", address: "日本橋小舟町14-12", note: "★後回しでもOK。(桃源郷11時半間に合わない場合はカポペリのあとにまわす) 人がいれば店内入って足元へ、居なければ店舗前に置く。", timeLimit: "" },
-            { id: 10, name: "和食の故", address: "内神田2-14-13高芳ビルB1F", note: "階段コーナーに置く、発泡あれば回収", timeLimit: "" },
-            { id: 11, name: "赤兵衛", address: "内神田3-22-1勝田ビル2F", note: "店舗入口前(2階)に置く。シャッター閉まってたら開けて2階の店舗入口前に置く。発泡は1階外に置いてあれば回収。", timeLimit: "" },
-            { id: 12, name: "しょうげつあん 松月庵", address: "神田司町2-6-19", note: "正面入口から入り、廚房までいき、奥の地下に降り冷蔵庫に先入れ先出しで中身だけ。蒲鉾(中段右 )、鴨肉(上段左脚)、海老(上段右岸)、乾き物は手渡し", timeLimit: "12時~13時 納品NG" },
-            { id: 13, name: "とうげんきょう 桃源郷", address: "神田小川町1-11クロスタB1F", note: "★11時半までに行く。出発が遅れた場合は能登路のあとに向かうのが良い。店内カウンターへ中身だけ。ランチタイムに重なる際は要注意。万が一11時半以降でランチタイムにかさなってしまった場合は、カウンターへおけないので指示に従う。その際はきちんと謝罪。", timeLimit: "11時半までに行く" },
-            { id: 14, name: "ふじみ藤海", address: "外神田2-13-10ダイニチビルB1F", note: "EV降りた正面に置く。(店内人いても置き配でOK)前日の発泡回収。", timeLimit: "" },
-            { id: 15, name: "ともえや巴屋", address: "本郷2-13-10", note: "店舗入口は使用禁止、必ず向かって右扉側から入る。厨房の奥で中身だけ。", timeLimit: "12時~13時 納品NG" },
-            { id: 16, name: "あさひや", address: "本郷6-17-6", note: "店舗入口は使用禁止。向かって右側の裏口側から入る。集金金額を口頭で伝える。左側の台の上に中身だけ。冷凍エビもから出して箱回收。", timeLimit: "12時~13時 納品NG" },
-            { id: 17, name: "カボベリカーノ", address: "本郷7-3-1医学部教育研究棟", note: "納品書は13Fへ(1Fのみ納品時は1FでOK)。1Fはおにぎり具材、13Fは店舗入口向かって左の扉開けた左の台へ。直接はNGなので店舗の方に「海老です」と声をかけ、トレイをだしていただきトレイに納品。", timeLimit: "" },
-            { id: 18, name: "りょうざんぱく梁山泊", address: "墨田区緑2-14-3", note: "店内奥のカウンターへ中身だけ。", timeLimit: "" },
-            { id: 19, name: "いっそん一村", address: "江東区深川2-1-2岡野ビル2F", note: "人がいれば店内カウンターへ発泡ごとおく。居なければEV降りて置く。前日の発泡回収。", timeLimit: "" },
-            { id: 20, name: "ぞろめ沿露目", address: "江東区富岡1-12-6阿久津ビル1F", note: "店内すぐのカウンターへ中身だけ。", timeLimit: "" },
-            { id: 21, name: "ぱんから蛮殼", address: "月島1-25-7", note: "店内奥カウンター下へ発泡ごとおく。入口付近にある前日の発泡を回収。", timeLimit: "" },
-            { id: 22, name: "やなぎ家", address: "足立区柳原2-18-8", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" },
-            { id: 23, name: "清かわ", address: "南島西2-22-1", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" },
-            { id: 24, name: "そうま 相馬屋", address: "個2-6-3", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" }
+            { id: 1, name: "白樺", address: "銀座7-2-16-6階", category: "", payment: "", frequency: "週1~2", note: "人が居たら店内へ(指示有り)、居なければEV降りて左側に置く。直送納品されている場合の発泡もあれば回収。", timeLimit: "" },
+            { id: 2, name: "エスペロ", address: "銀座5-6-10 B1F", category: "洋食", payment: "", frequency: "ほぼ毎日少量", note: "店内調理場まで、中身だけ。", timeLimit: "" },
+            { id: 3, name: "わびさび本店", address: "新橋2-9-6烏森神社ビル3F", category: "居酒屋", payment: "", frequency: "月~金", note: "人がいれば店内入って正面のキッチンに中身だけ、いなければEV降りて右側に置く。", timeLimit: "" },
+            { id: 4, name: "福炎や", address: "新橋2-9-6烏森神社ビル4F", category: "居酒屋", payment: "", frequency: "月~金", note: "中身＋氷もお渡し。＊氷お渡しを基本この店舗のみ", timeLimit: "" },
+            { id: 5, name: "ダイヤモンドフィッシュ", address: "新橋2-9-6烏森神社ビル5F", category: "洋食", payment: "", frequency: "月~金", note: "人がいれば中身だけ、いなければEV降りて左側に置く。", timeLimit: "" },
+            { id: 6, name: "ひろ", address: "新橋2-2-4パイオニアビル3F", category: "居酒屋", payment: "", frequency: "週3~4", note: "人がいれば店内カウンターへ中身だけ、居なければEV降りて左側に置く。前日の発泡あれば回収。", timeLimit: "" },
+            { id: 7, name: "多助", address: "新橋3-2-3ルグランシェビル2F", category: "居酒屋", payment: "", frequency: "週3~4", note: "店内入って直ぐの御座敷前で確認。量によってはそのまま中身をもっていく場合と、発泡ごと一旦厨房へもっていき中身を取り出したのち、発泡（＋氷）をもらう場合あり。（指示に従う）店外奥に発泡ある場合があるので確認。", timeLimit: "" },
+            { id: 8, name: "のとじ 能登治", address: "新橋3-7-5能登治ビル1F", category: "蕎麦屋", payment: "", frequency: "木", note: "地下に降り、中身だけ。蒲鉾は右側冷蔵庫中段、冷凍エビは左側冷凍庫に先入れ先出し。伝票はマグネットで挟む。納品後1階へ声掛け。", timeLimit: "" },
+            { id: 9, name: "Hachi", address: "日本橋小舟町14-12", category: "洋食", payment: "", frequency: "週2~3", note: "★後回しでもOK。（桃源郷11時半間に合わない場合はカポペリのあとにまわす）人がいれば店内入って足元へ、居なければ店舗前に置く。", timeLimit: "" },
+            { id: 10, name: "和食の故郷", address: "内神田2-14-13高芳ビルB1F", category: "居酒屋", payment: "", frequency: "週3~4", note: "階段コーナーに置く。発泡あれば回収。", timeLimit: "" },
+            { id: 11, name: "赤兵衛", address: "内神田3-22-1勝田ビル2F", category: "居酒屋", payment: "", frequency: "週3~4", note: "店舗入口前（2階）に置く。シャッター閉まってたら開けて2階の店舗入口前に置く。発泡は1階外に置いてあれば回収。", timeLimit: "" },
+            { id: 12, name: "しょうげつあん 松月庵", address: "神田司町2-6-19", category: "蕎麦屋", payment: "集金", frequency: "月・金", note: "正面入口から入り、厨房までいき、奥の地下に降り冷蔵庫に先入れ先出しで中身だけ。蒲鉾(中段右扉)、鴨肉(上段左扉)、海老(上段右扉)、乾き物は手渡し。", timeLimit: "12時〜13時 納品NG" },
+            { id: 13, name: "とうげんきょう 桃源郷", address: "神田小川町1-11クロスタB1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "★11時半までに行く。出発が遅れた場合は能登路のあとに向かうのが良い。店内カウンターへ中身だけ。ランチタイムに重なる際は要注意。万が一11時半以降でランチタイムにかさなってしまった場合は、カウンターへおけないので指示に従う。その際はきちんと謝罪。", timeLimit: "11時半までに行く" },
+            { id: 14, name: "ふじみ 藤海", address: "外神田2-13-10ダイニチビルB1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "EV降りた正面に置く。（店内人いても置き配でOK）前日の発泡回収。", timeLimit: "" },
+            { id: 15, name: "ともえや 巴屋", address: "本郷2-13-10", category: "蕎麦屋", payment: "集金", frequency: "月", note: "店舗入口は使用禁止。必ず向かって右扉側から入る。厨房の奥で中身だけ。", timeLimit: "12時〜13時 納品NG" },
+            { id: 16, name: "あさひや", address: "本郷6-17-6", category: "蕎麦屋", payment: "集金", frequency: "月・火", note: "店舗入口は使用禁止。向かって右側の裏口側から入る。集金金額を口頭で伝える。左側の台の上に中身だけ。冷凍エビも箱から出して箱回収。", timeLimit: "12時〜13時 納品NG" },
+            { id: 17, name: "カポペリカーノ", address: "本郷7-3-1医学部教育研究棟", category: "洋食(13F)・おにぎり(1F)", payment: "", frequency: "週2~3", note: "納品書は13Fへ(1Fのみ納品時は1FでOK)。1Fはおにぎり具材、13Fは店舗入口向かって左の青扉開けた左の台へ納品。直接はNGなので（汚いため）店舗の方にきちんと「海老徳です」と声をかけ、トレイをだしていただき、トレイに納品。", timeLimit: "" },
+            { id: 18, name: "りょうざんぱく 梁山泊", address: "墨田区緑2-14-3", category: "居酒屋", payment: "", frequency: "火・金", note: "店内奥のカウンターへ中身だけ。", timeLimit: "" },
+            { id: 19, name: "いっそん 一村", address: "江東区深川2-1-2岡野ビル2F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "人がいれば店内カウンターへ発泡ごとおく。居なければEV降りて置く。前日の発泡回収。", timeLimit: "" },
+            { id: 20, name: "ぞろめ 沿露目", address: "江東区富岡1-12-6阿久津ビル1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "店内すぐのカウンターへ中身だけ。", timeLimit: "" },
+            { id: 21, name: "ぱんから 蛮殼", address: "月島1-25-7", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "店内奥カウンター下へ発泡ごとおく。入口付近にある前日の発泡を回収。", timeLimit: "" },
+            { id: 22, name: "やなぎ家", address: "足立区柳原2-18-8", category: "蕎麦屋", payment: "集金", frequency: "土(月に1~2)", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" },
+            { id: 23, name: "清かわ", address: "江戸川区南葛西2-22-1", category: "蕎麦屋", payment: "集金", frequency: "土", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" },
+            { id: 24, name: "そうま 相馬屋", address: "中央区佃2-6-3", category: "蕎麦屋", payment: "集金", frequency: "月に1~2", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" }
         ];
 
         // 状態管理
@@ -299,7 +299,7 @@
                 const isSkipped = status === 'skipped';
                 const isCompleted = status === 'completed';
                 const isCollapsed = isCompleted || isSkipped;
-                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('東京都' + item.address)}`;
 
                 html += `
                     <div class="bg-white rounded-xl shadow-sm transition-all duration-300 border-l-4 overflow-hidden
@@ -313,6 +313,7 @@
                                     <h2 class="text-lg font-bold truncate ${isSkipped ? 'line-through text-gray-500' : isCompleted ? 'text-gray-700' : 'text-gray-900'}">
                                         ${item.name}
                                     </h2>
+                                    ${item.payment && !isSkipped ? `<span class="text-xs font-bold text-white bg-red-500 px-2 py-1 rounded-full shrink-0">💴${item.payment}</span>` : ''}
                                     ${isCompleted ? `<span class="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded-full shrink-0">${q}箱</span>` : ''}
                                 </div>
                 `;
@@ -346,6 +347,11 @@
                 if (!isCollapsed) {
                     html += `
                             <div>
+                                <div class="flex flex-wrap gap-1.5 mb-2 text-xs font-bold">
+                                    ${item.category ? `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">${item.category}</span>` : ''}
+                                    ${item.frequency ? `<span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">頻度: ${item.frequency}</span>` : ''}
+                                    ${item.payment ? `<span class="bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded">💴 ${item.payment}あり</span>` : ''}
+                                </div>
                                 <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="w-full text-left flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2.5 rounded-lg mb-3 block no-underline">
                                     📍 <span class="flex-1 truncate">${item.address}</span>
                                 </a>
@@ -395,7 +401,7 @@
                 tableHTML += `
                     <tr class="border-b border-gray-200 ${isSkipped ? 'text-gray-400 bg-gray-50' : ''}">
                         <td class="p-2">${index + 1}</td>
-                        <td class="p-2 font-bold">${item.name}</td>
+                        <td class="p-2 font-bold">${item.name}${item.payment && !isSkipped ? ' <span class="text-xs text-red-600">💴集金</span>' : ''}</td>
                         <td class="p-2 text-center tabular-nums">${isSkipped ? '-' : q}</td>
                         <td class="p-2 text-center text-xs font-bold">
                             ${isSkipped ? 'ナシ' : isCompleted ? '<span class="text-green-600">完了</span>' : '<span class="text-red-500">未完</span>'}
