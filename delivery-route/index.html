@@ -337,7 +337,8 @@
                 const isAutoSkipped = q === 0 && status !== 'skipped' && !isCompleted;
                 const isSkipped = status === 'skipped' || isAutoSkipped;
                 const isCollapsed = isCompleted || isSkipped;
-                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('東京都' + item.address)}`;
+                // 車ルートでナビを即開始（スマホの Google マップアプリで開く）
+                const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('東京都' + item.address)}&travelmode=driving&dir_action=navigate`;
 
                 html += `
                     <div class="bg-white rounded-xl shadow-sm transition-all duration-300 border-l-4 overflow-hidden
@@ -400,6 +401,7 @@
                                 </div>
                                 <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="w-full text-left flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2.5 rounded-lg mb-3 block no-underline">
                                     📍 <span class="flex-1 truncate">${item.address}</span>
+                                    <span class="shrink-0 text-xs font-bold text-white bg-blue-600 px-2.5 py-1 rounded-full">🚗 ナビ開始</span>
                                 </a>
                                 <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg mb-3 border border-gray-100">
                                     <span class="text-gray-700 font-bold text-sm">納品箱数</span>
