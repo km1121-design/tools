@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>配送ルート管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #report-section, #report-section * { visibility: visible; }
+            #report-section { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+            .print-bg { background-color: white !important; }
+        }
+        #toast {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31, 41, 55, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-weight: bold;
+            z-index: 50;
+            text-align: center;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div id="toast">コピーしました！LINE等に貼り付けてください。</div>
+
+    <script>
+        // 納品先データ
+        const initialDeliveryData = [
+            { id: 1, name: "白種", address: "銀座7-2-16-6階", note: "人が居たら店内へ(指示有り)、居なければEV降りて左側に置く。直送納品されている場合の発泡もあれば回収。", timeLimit: "" },
+            { id: 2, name: "エスペロ", address: "銀座5-6-10 B1F", note: "店内調理場まで、中身だけ。", timeLimit: "" },
+            { id: 3, name: "わびさび本店", address: "新橋2-9-6烏森神社ビル3F", note: "人がいれば店内入って正面のキッチンに中身だけ、いなければEV降りて右側に置く。", timeLimit: "" },
+            { id: 4, name: "福炎や", address: "新橋2-9-6烏森神社ビル4F", note: "中身+氷もお渡し。●氷お渡しを基本この店舗のみ", timeLimit: "" },
+            { id: 5, name: "ダイヤモンドフィッシュ", address: "新橋2-9-6烏森神社ビル5F", note: "人がいれば中身だけ、いなければEV降りて左側に置く", timeLimit: "" },
+            { id: 6, name: "ひろ", address: "新橋2-2-4バイオニアビル3F", note: "人がいれば店内カウンターへ中身だけ、居なければEV降りて左側に置く。前日の発泡あれば回収。", timeLimit: "" },
+            { id: 7, name: "多助", address: "新橋3-2-3ルグランシェビル2F", note: "店内入って直ぐの御座敷前で確認。量によってはそのまま中身をもっていく場合と、発泡ごと一旦廚房へもっていき中身を取り出したのち、発泡(+氷)をもらう場合あり。(指示に従う)店外奥に発泡ある場合があるので確認", timeLimit: "" },
+            { id: 8, name: "のとじ 能登治", address: "新橋3-7-5能登治ビル1F", note: "地下に降り、中身だけ。蒲鉾は右側冷蔵庫中段、冷凍エビは左側冷凍庫に先入れ先出し。伝票はマグネットで挟む。納品後1階へ声掛け。", timeLimit: "" },
+            { id: 9, name: "Hachi", address: "日本橋小舟町14-12", note: "★後回しでもOK。(桃源郷11時半間に合わない場合はカポペリのあとにまわす) 人がいれば店内入って足元へ、居なければ店舗前に置く。", timeLimit: "" },
+            { id: 10, name: "和食の故", address: "内神田2-14-13高芳ビルB1F", note: "階段コーナーに置く、発泡あれば回収", timeLimit: "" },
+            { id: 11, name: "赤兵衛", address: "内神田3-22-1勝田ビル2F", note: "店舗入口前(2階)に置く。シャッター閉まってたら開けて2階の店舗入口前に置く。発泡は1階外に置いてあれば回収。", timeLimit: "" },
+            { id: 12, name: "しょうげつあん 松月庵", address: "神田司町2-6-19", note: "正面入口から入り、廚房までいき、奥の地下に降り冷蔵庫に先入れ先出しで中身だけ。蒲鉾(中段右 )、鴨肉(上段左脚)、海老(上段右岸)、乾き物は手渡し", timeLimit: "12時~13時 納品NG" },
+            { id: 13, name: "とうげんきょう 桃源郷", address: "神田小川町1-11クロスタB1F", note: "★11時半までに行く。出発が遅れた場合は能登路のあとに向かうのが良い。店内カウンターへ中身だけ。ランチタイムに重なる際は要注意。万が一11時半以降でランチタイムにかさなってしまった場合は、カウンターへおけないので指示に従う。その際はきちんと謝罪。", timeLimit: "11時半までに行く" },
+            { id: 14, name: "ふじみ藤海", address: "外神田2-13-10ダイニチビルB1F", note: "EV降りた正面に置く。(店内人いても置き配でOK)前日の発泡回収。", timeLimit: "" },
+            { id: 15, name: "ともえや巴屋", address: "本郷2-13-10", note: "店舗入口は使用禁止、必ず向かって右扉側から入る。厨房の奥で中身だけ。", timeLimit: "12時~13時 納品NG" },
+            { id: 16, name: "あさひや", address: "本郷6-17-6", note: "店舗入口は使用禁止。向かって右側の裏口側から入る。集金金額を口頭で伝える。左側の台の上に中身だけ。冷凍エビもから出して箱回收。", timeLimit: "12時~13時 納品NG" },
+            { id: 17, name: "カボベリカーノ", address: "本郷7-3-1医学部教育研究棟", note: "納品書は13Fへ(1Fのみ納品時は1FでOK)。1Fはおにぎり具材、13Fは店舗入口向かって左の扉開けた左の台へ。直接はNGなので店舗の方に「海老です」と声をかけ、トレイをだしていただきトレイに納品。", timeLimit: "" },
+            { id: 18, name: "りょうざんぱく梁山泊", address: "墨田区緑2-14-3", note: "店内奥のカウンターへ中身だけ。", timeLimit: "" },
+            { id: 19, name: "いっそん一村", address: "江東区深川2-1-2岡野ビル2F", note: "人がいれば店内カウンターへ発泡ごとおく。居なければEV降りて置く。前日の発泡回収。", timeLimit: "" },
+            { id: 20, name: "ぞろめ沿露目", address: "江東区富岡1-12-6阿久津ビル1F", note: "店内すぐのカウンターへ中身だけ。", timeLimit: "" },
+            { id: 21, name: "ぱんから蛮殼", address: "月島1-25-7", note: "店内奥カウンター下へ発泡ごとおく。入口付近にある前日の発泡を回収。", timeLimit: "" },
+            { id: 22, name: "やなぎ家", address: "足立区柳原2-18-8", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" },
+            { id: 23, name: "清かわ", address: "南島西2-22-1", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" },
+            { id: 24, name: "そうま 相馬屋", address: "個2-6-3", note: "店内カウンターへ中身だけ。", timeLimit: "12時~13時 納品NG" }
+        ];
+
+        // 状態管理
+        let routeList = JSON.parse(JSON.stringify(initialDeliveryData));
+        let quantities = {};
+        let itemStatuses = {};
+        let isEditMode = false;
+        let showReport = false;
+
+        // 初期化
+        function init() {
+            render();
+        }
+
+        // アクション関数
+        window.toggleEdit = function() {
+            isEditMode = !isEditMode;
+            render();
+        };
+
+        window.toggleReport = function(state) {
+            showReport = state;
+            render();
+            window.scrollTo(0, 0);
+        };
+
+        window.changeQty = function(id, delta) {
+            if (isEditMode) return;
+            const current = quantities[id] || 0;
+            quantities[id] = Math.max(0, current + delta);
+            render();
+        };
+
+        window.setStatus = function(id, status) {
+            if (itemStatuses[id] === status) {
+                delete itemStatuses[id]; // トグル
+            } else {
+                itemStatuses[id] = status;
+            }
+            render();
+        };
+
+        window.moveItem = function(index, dir) {
+            const target = index + dir;
+            if (target < 0 || target >= routeList.length) return;
+            const temp = routeList[index];
+            routeList[index] = routeList[target];
+            routeList[target] = temp;
+            render();
+        };
+
+        window.copyDeparture = function() {
+            const today = new Date().toLocaleDateString('ja-JP');
+            let text = `【出発報告】${today}\n\n`;
+            let order = 1;
+            let activeCount = 0;
+            let totalB = 0;
+            routeList.forEach((item) => {
+                if (itemStatuses[item.id] !== 'skipped') {
+                    const q = quantities[item.id] || 0;
+                    text += `${order}. ${item.name}: ${q}箱\n`;
+                    order++;
+                    activeCount++;
+                    totalB += q;
+                }
+            });
+            text += `\n配送予定件数: ${activeCount}件\n総予定箱数: ${totalB} 箱\n\n出発します。よろしくお願いします。`;
+            executeCopy(text);
+        };
+
+        window.copyCompletion = function() {
+            const today = new Date().toLocaleDateString('ja-JP');
+            let text = `【完了報告】${today}\n\n`;
+            let order = 1;
+            let activeCount = 0;
+            let completedCount = 0;
+            let totalB = 0;
+            routeList.forEach((item) => {
+                if (itemStatuses[item.id] !== 'skipped') {
+                    const q = quantities[item.id] || 0;
+                    const mark = itemStatuses[item.id] === 'completed' ? '完了' : '未完';
+                    text += `${order}. ${item.name}: ${q}箱 [${mark}]\n`;
+                    if (itemStatuses[item.id] === 'completed') completedCount++;
+                    order++;
+                    activeCount++;
+                    totalB += q;
+                }
+            });
+            text += `\n配送完了件数: ${completedCount}/${activeCount}件\n総納品数: ${totalB} 箱\n\nお疲れ様でした。`;
+            executeCopy(text);
+        };
+
+        function executeCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('コピーしました！LINE等に貼り付けてください。');
+            } catch (err) {
+                showToast('コピーに失敗しました。');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        // 描画処理
+        function render() {
+            const app = document.getElementById('app');
+            if (showReport) {
+                app.innerHTML = renderReportHTML();
+            } else {
+                app.innerHTML = renderMainHTML();
+            }
+        }
+
+        function renderMainHTML() {
+            let activeCount = 0;
+            let completedCount = 0;
+            let totalB = 0;
+            routeList.forEach(item => {
+                if (itemStatuses[item.id] !== 'skipped') {
+                    activeCount++;
+                    totalB += (quantities[item.id] || 0);
+                    if (itemStatuses[item.id] === 'completed') completedCount++;
+                }
+            });
+
+            let html = `
+                <div class="max-w-md mx-auto min-h-screen pb-20">
+                    <header class="bg-blue-700 text-white p-4 sticky top-0 z-10 shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h1 class="text-xl font-bold tracking-wide">本日の配送ルート</h1>
+                            <div class="flex gap-2">
+                                <button onclick="toggleEdit()" class="px-3 py-1.5 text-sm rounded-lg font-bold transition-all shadow-sm ${isEditMode ? 'bg-yellow-400 text-yellow-900' : 'bg-blue-600 text-white border border-blue-500'}">
+                                    ${isEditMode ? '編集完了' : '順序変更'}
+                                </button>
+                                <button onclick="toggleReport(true)" class="px-4 py-1.5 text-sm bg-white text-blue-700 rounded-lg font-bold shadow-sm">
+                                    報告
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-sm font-medium bg-blue-800 p-3 rounded-xl shadow-inner border border-blue-600">
+                            <div class="flex flex-col">
+                                <span class="text-blue-200 text-xs">進捗状況</span>
+                                <span class="text-lg font-bold">${completedCount} <span class="text-sm font-normal">/ ${activeCount} 件</span></span>
+                            </div>
+                            <div class="w-px h-8 bg-blue-600 mx-2"></div>
+                            <div class="flex flex-col text-right">
+                                <span class="text-blue-200 text-xs">合計箱数</span>
+                                <span class="text-xl font-bold tabular-nums">${totalB} <span class="text-sm font-normal">箱</span></span>
+                            </div>
+                        </div>
+                    </header>
+                    <main class="p-4">
+            `;
+
+            if (isEditMode) {
+                html += `
+                    <div class="bg-yellow-50 text-yellow-800 p-3 rounded-xl mb-4 text-sm font-bold flex items-center gap-2 border border-yellow-200 shadow-sm">
+                        矢印ボタンでルートの順番を入れ替えられます
+                    </div>
+                `;
+            }
+
+            routeList.forEach((item, index) => {
+                const q = quantities[item.id] || 0;
+                const status = itemStatuses[item.id];
+                const isSkipped = status === 'skipped';
+                const isCompleted = status === 'completed';
+                const isCollapsed = isCompleted || isSkipped;
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
+
+                html += `
+                    <div class="bg-white rounded-xl shadow-sm transition-all duration-300 border-l-4 overflow-hidden
+                        ${isSkipped ? 'border-gray-300 opacity-60 bg-gray-50 mb-2' : isCompleted ? 'border-green-400 opacity-90 bg-green-50 mb-2' : 'border-blue-500 mb-4'}">
+                        <div class="${isCollapsed ? 'p-3' : 'p-4'}">
+                            <div class="flex justify-between items-center ${!isCollapsed ? 'mb-3' : ''}">
+                                <div class="flex items-center gap-2 overflow-hidden">
+                                    <span class="text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${isSkipped ? 'bg-gray-400' : isCompleted ? 'bg-green-500' : 'bg-blue-500'}">
+                                        ${item.id}
+                                    </span>
+                                    <h2 class="text-lg font-bold truncate ${isSkipped ? 'line-through text-gray-500' : isCompleted ? 'text-gray-700' : 'text-gray-900'}">
+                                        ${item.name}
+                                    </h2>
+                                    ${isCompleted ? `<span class="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded-full shrink-0">${q}箱</span>` : ''}
+                                </div>
+                `;
+
+                if (!isEditMode) {
+                    html += `
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button onclick="setStatus(${item.id}, 'skipped')" class="px-3 py-1.5 rounded text-xs font-bold transition-colors ${isSkipped ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600'}">
+                                        配送なし
+                                    </button>
+                                    <button onclick="setStatus(${item.id}, 'completed')" class="w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleted ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-300 bg-white'}" title="完了">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </button>
+                                </div>
+                    `;
+                } else {
+                    html += `
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button onclick="moveItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-8 h-8 rounded bg-gray-200 flex items-center justify-center ${index === 0 ? 'opacity-30' : 'active:bg-gray-300'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                                    </button>
+                                    <button onclick="moveItem(${index}, 1)" ${index === routeList.length - 1 ? 'disabled' : ''} class="w-8 h-8 rounded bg-gray-200 flex items-center justify-center ${index === routeList.length - 1 ? 'opacity-30' : 'active:bg-gray-300'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                </div>
+                    `;
+                }
+
+                html += `</div>`; // end flex header
+
+                if (!isCollapsed) {
+                    html += `
+                            <div>
+                                <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="w-full text-left flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2.5 rounded-lg mb-3 block no-underline">
+                                    📍 <span class="flex-1 truncate">${item.address}</span>
+                                </a>
+                                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg mb-3 border border-gray-100">
+                                    <span class="text-gray-700 font-bold text-sm">納品箱数</span>
+                                    <div class="flex items-center gap-4">
+                                        <button onclick="changeQty(${item.id}, -1)" class="w-10 h-10 rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center text-gray-600" ${q <= 0 || isEditMode ? 'disabled' : ''}>-</button>
+                                        <span class="text-2xl font-bold w-8 text-center tabular-nums">${q}</span>
+                                        <button onclick="changeQty(${item.id}, 1)" class="w-10 h-10 rounded-full bg-blue-500 border border-blue-600 shadow-sm flex items-center justify-center text-white" ${isEditMode ? 'disabled' : ''}>+</button>
+                                    </div>
+                                </div>
+                    `;
+                    if (item.timeLimit) {
+                        html += `<div class="text-sm flex items-start gap-2 text-red-700 bg-red-50 p-2.5 rounded-md mb-2 font-bold border border-red-100">⏰ ${item.timeLimit}</div>`;
+                    }
+                    if (item.note) {
+                        html += `<div class="text-sm flex items-start gap-2 text-yellow-800 bg-yellow-50 p-3 rounded-md border border-yellow-200 leading-relaxed">⚠️ ${item.note}</div>`;
+                    }
+                    html += `</div>`; // end not collapsed content
+                }
+                html += `</div></div>`; // end card
+            });
+
+            html += `</main></div>`;
+            return html;
+        }
+
+        function renderReportHTML() {
+            let activeCount = 0;
+            let completedCount = 0;
+            let totalB = 0;
+            let tableHTML = '';
+            const today = new Date().toLocaleDateString('ja-JP');
+
+            routeList.forEach((item, index) => {
+                const status = itemStatuses[item.id];
+                const isSkipped = status === 'skipped';
+                const isCompleted = status === 'completed';
+                const q = quantities[item.id] || 0;
+
+                if (!isSkipped) {
+                    activeCount++;
+                    totalB += q;
+                    if (isCompleted) completedCount++;
+                }
+
+                tableHTML += `
+                    <tr class="border-b border-gray-200 ${isSkipped ? 'text-gray-400 bg-gray-50' : ''}">
+                        <td class="p-2">${index + 1}</td>
+                        <td class="p-2 font-bold">${item.name}</td>
+                        <td class="p-2 text-center tabular-nums">${isSkipped ? '-' : q}</td>
+                        <td class="p-2 text-center text-xs font-bold">
+                            ${isSkipped ? 'ナシ' : isCompleted ? '<span class="text-green-600">完了</span>' : '<span class="text-red-500">未完</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <div class="max-w-md mx-auto min-h-screen bg-gray-50 print-bg" id="report-section">
+                    <header class="bg-gray-800 text-white p-4 sticky top-0 z-10 shadow-lg no-print">
+                        <div class="flex justify-between items-center">
+                            <button onclick="toggleReport(false)" class="px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded-lg font-bold shadow-sm">
+                                ← 戻る
+                            </button>
+                            <h1 class="text-lg font-bold tracking-wide">配送報告</h1>
+                            <button onclick="window.print()" class="px-3 py-1.5 text-sm bg-white text-gray-800 rounded-lg font-bold shadow-sm">
+                                印刷
+                            </button>
+                        </div>
+                    </header>
+                    <main class="p-4">
+                        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200">
+                            <h2 class="text-lg font-bold text-gray-900 mb-1">配送報告書</h2>
+                            <p class="text-sm text-gray-500 mb-4">${today}</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                    <span class="block text-xs text-gray-500">配送完了</span>
+                                    <span class="text-xl font-bold tabular-nums">${completedCount} <span class="text-sm font-normal">/ ${activeCount} 件</span></span>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 text-right">
+                                    <span class="block text-xs text-gray-500">総箱数</span>
+                                    <span class="text-xl font-bold tabular-nums">${totalB} <span class="text-sm font-normal">箱</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-4 no-print">
+                            <button onclick="copyDeparture()" class="py-3 rounded-xl bg-blue-600 text-white font-bold shadow-sm active:bg-blue-700">
+                                出発報告をコピー
+                            </button>
+                            <button onclick="copyCompletion()" class="py-3 rounded-xl bg-green-600 text-white font-bold shadow-sm active:bg-green-700">
+                                完了報告をコピー
+                            </button>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-100 text-gray-600 text-xs">
+                                    <tr>
+                                        <th class="p-2 text-left w-8">#</th>
+                                        <th class="p-2 text-left">納品先</th>
+                                        <th class="p-2 text-center w-14">箱数</th>
+                                        <th class="p-2 text-center w-14">状態</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableHTML}
+                                </tbody>
+                            </table>
+                        </div>
+                    </main>
+                </div>
+            `;
+        }
+
+        init();
+    </script>
+</body>
+</html>

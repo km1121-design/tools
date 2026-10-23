@@ -8,6 +8,7 @@
 | `pages-root/` | トップページ（ツール一覧） | `/` |
 | `dashboard/` | Gooner運送事業部 経営分析ダッシュボード（Vite + React。ビルドして配置） | `/dashboard/` |
 | `invoice-tool/` | 請求書作成ツール（静的HTML/JS） | `/invoice-tool/` |
+| `delivery-route/` | 配送ルート管理（静的HTML。スマホ向け） | `/delivery-route/` |
 
 ## 経緯
 
@@ -23,7 +24,7 @@ BAR 日報・経営分析アプリは `km1121-design/bar-app`（private）へ移
 # dashboard（Vite）
 cd dashboard && npm install && npm run dev
 
-# invoice-tool / pages-root は静的なのでファイルを直接開くだけ
+# invoice-tool / delivery-route / pages-root は静的なのでファイルを直接開くだけ
 ```
 
 リンクはすべて相対パス（`./dashboard/` や Vite の `base: './'`）にしてあるため、
