@@ -78,6 +78,7 @@
         let routeList = JSON.parse(JSON.stringify(initialDeliveryData));
         let quantities = {};
         let itemStatuses = {};
+        let collections = {}; // 集金額（円）
         let isEditMode = false;
         let showReport = false;
 
@@ -94,7 +95,8 @@
                     date: todayKey(),
                     order: routeList.map(item => item.id),
                     quantities,
-                    itemStatuses
+                    itemStatuses,
+                    collections
                 }));
             } catch (e) {}
         }
@@ -114,6 +116,7 @@
             if (saved.date === todayKey()) {
                 quantities = saved.quantities || {};
                 itemStatuses = saved.itemStatuses || {};
+                collections = saved.collections || {};
             }
         }
 
@@ -121,6 +124,7 @@
             if (!confirm('本日の箱数・完了状況をすべてリセットしますか？')) return;
             quantities = {};
             itemStatuses = {};
+            collections = {};
             render();
             showToast('リセットしました');
         };
@@ -150,6 +154,23 @@
             render();
         };
 
+        function yen(n) {
+            return '¥' + (n || 0).toLocaleString('ja-JP');
+        }
+
+        // 入力中は再描画しない（フォーカスが外れないように）。確定時に再描画して合計を更新
+        window.inputCollection = function(id, value) {
+            const n = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+            if (n > 0) collections[id] = n; else delete collections[id];
+            saveState();
+        };
+
+        function collectionTotal() {
+            return routeList.reduce((sum, item) => (
+                item.payment && itemStatuses[item.id] !== 'skipped' ? sum + (collections[item.id] || 0) : sum
+            ), 0);
+        }
+
         window.setStatus = function(id, status) {
             if (itemStatuses[id] === status) {
                 delete itemStatuses[id]; // トグル
@@ -177,13 +198,13 @@
             routeList.forEach((item) => {
                 if (itemStatuses[item.id] !== 'skipped') {
                     const q = quantities[item.id] || 0;
-                    text += `${order}. ${item.name}: ${q}箱\n`;
+                    text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''}\n`;
                     order++;
                     activeCount++;
                     totalB += q;
                 }
             });
-            text += `\n配送予定件数: ${activeCount}件\n総予定箱数: ${totalB} 箱\n\n出発します。よろしくお願いします。`;
+            text += `\n配送予定件数: ${activeCount}件\n総予定箱数: ${totalB} 箱\n集金予定合計: ${yen(collectionTotal())}\n\n出発します。よろしくお願いします。`;
             executeCopy(text);
         };
 
@@ -198,14 +219,14 @@
                 if (itemStatuses[item.id] !== 'skipped') {
                     const q = quantities[item.id] || 0;
                     const mark = itemStatuses[item.id] === 'completed' ? '完了' : '未完';
-                    text += `${order}. ${item.name}: ${q}箱 [${mark}]\n`;
+                    text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''} [${mark}]\n`;
                     if (itemStatuses[item.id] === 'completed') completedCount++;
                     order++;
                     activeCount++;
                     totalB += q;
                 }
             });
-            text += `\n配送完了件数: ${completedCount}/${activeCount}件\n総納品数: ${totalB} 箱\n\nお疲れ様でした。`;
+            text += `\n配送完了件数: ${completedCount}/${activeCount}件\n総納品数: ${totalB} 箱\n集金合計: ${yen(collectionTotal())}\n\nお疲れ様でした。`;
             executeCopy(text);
         };
 
@@ -313,7 +334,7 @@
                                     <h2 class="text-lg font-bold truncate ${isSkipped ? 'line-through text-gray-500' : isCompleted ? 'text-gray-700' : 'text-gray-900'}">
                                         ${item.name}
                                     </h2>
-                                    ${item.payment && !isSkipped ? `<span class="text-xs font-bold text-white bg-red-500 px-2 py-1 rounded-full shrink-0">💴${item.payment}</span>` : ''}
+                                    ${item.payment && isCompleted ? `<span class="text-xs font-bold text-white bg-red-500 px-2 py-1 rounded-full shrink-0">💴${collections[item.id] ? yen(collections[item.id]) : item.payment}</span>` : ''}
                                     ${isCompleted ? `<span class="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded-full shrink-0">${q}箱</span>` : ''}
                                 </div>
                 `;
@@ -364,6 +385,19 @@
                                     </div>
                                 </div>
                     `;
+                    if (item.payment) {
+                        html += `
+                                <label class="flex items-center justify-between bg-red-50 p-3 rounded-lg mb-3 border border-red-200">
+                                    <span class="text-red-700 font-bold text-sm">💴 集金額</span>
+                                    <span class="flex items-center gap-1 text-xl font-bold">
+                                        ¥<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"
+                                            value="${collections[item.id] ? collections[item.id].toLocaleString('ja-JP') : ''}"
+                                            oninput="inputCollection(${item.id}, this.value)" onchange="render()" ${isEditMode ? 'disabled' : ''}
+                                            class="w-32 text-right bg-white border border-red-300 rounded-lg px-2 py-1.5 tabular-nums">
+                                    </span>
+                                </label>
+                        `;
+                    }
                     if (item.timeLimit) {
                         html += `<div class="text-sm flex items-start gap-2 text-red-700 bg-red-50 p-2.5 rounded-md mb-2 font-bold border border-red-100">⏰ ${item.timeLimit}</div>`;
                     }
@@ -401,7 +435,7 @@
                 tableHTML += `
                     <tr class="border-b border-gray-200 ${isSkipped ? 'text-gray-400 bg-gray-50' : ''}">
                         <td class="p-2">${index + 1}</td>
-                        <td class="p-2 font-bold">${item.name}${item.payment && !isSkipped ? ' <span class="text-xs text-red-600">💴集金</span>' : ''}</td>
+                        <td class="p-2 font-bold">${item.name}${item.payment && !isSkipped ? ' <span class="text-xs text-red-600">💴集金' + (collections[item.id] ? ' ' + yen(collections[item.id]) : '') + '</span>' : ''}</td>
                         <td class="p-2 text-center tabular-nums">${isSkipped ? '-' : q}</td>
                         <td class="p-2 text-center text-xs font-bold">
                             ${isSkipped ? 'ナシ' : isCompleted ? '<span class="text-green-600">完了</span>' : '<span class="text-red-500">未完</span>'}
@@ -435,6 +469,10 @@
                                 <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 text-right">
                                     <span class="block text-xs text-gray-500">総箱数</span>
                                     <span class="text-xl font-bold tabular-nums">${totalB} <span class="text-sm font-normal">箱</span></span>
+                                </div>
+                                <div class="col-span-2 bg-red-50 rounded-lg p-3 border border-red-100 flex justify-between items-center">
+                                    <span class="text-xs text-red-700 font-bold">💴 集金合計</span>
+                                    <span class="text-xl font-bold tabular-nums text-red-700">${yen(collectionTotal())}</span>
                                 </div>
                             </div>
                         </div>
