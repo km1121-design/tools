@@ -63,6 +63,15 @@
             </div>
         </div>
     </div>
+    <!-- LINEが開かなかったときの予備 -->
+    <div id="line-fallback" class="hidden fixed left-1/2 -translate-x-1/2 bottom-4 z-50 w-[92%] max-w-md bg-gray-900/95 text-white rounded-2xl shadow-xl p-3">
+        <p class="text-xs font-bold mb-2">LINEが開かない場合：文面はコピー済みです。LINEに貼り付けるか、下から送ってください。</p>
+        <div class="grid grid-cols-2 gap-2">
+            <button id="line-fallback-share" class="py-2.5 rounded-xl bg-white text-gray-900 font-bold text-sm">共有メニューで送る</button>
+            <button id="line-fallback-retry" class="py-2.5 rounded-xl bg-[#06C755] text-white font-bold text-sm">LINEをもう一度開く</button>
+        </div>
+        <button onclick="hideLineFallback()" class="w-full mt-2 text-xs text-gray-300 underline">閉じる</button>
+    </div>
     <div id="toast">コピーしました！LINE等に貼り付けてください。</div>
 
     <script>
@@ -481,10 +490,63 @@
         // 'line' ならLINEアプリを開いて送り先を選ぶ画面へ。それ以外はコピー
         function deliver(text, mode) {
             if (mode === 'line') {
-                window.location.href = 'https://line.me/R/share?text=' + encodeURIComponent(text);
+                openLine(text);
             } else {
                 executeCopy(text);
             }
+        }
+
+        // ホーム画面から開いたアプリ（iPhone）では https の line.me だとLINEアプリに渡らないことがあるため、
+        // アプリ用の line:// で開く。念のため文面をコピーしておき、開けなかったら予備の送り方を出す
+        let lineFallbackTimer = null;
+        function openLine(text) {
+            copySilently(text);
+            hideLineFallback();
+            document.getElementById('line-fallback-share').onclick = () => {
+                hideLineFallback();
+                if (navigator.share) {
+                    navigator.share({ text }).catch(() => {});
+                } else {
+                    window.location.href = 'https://line.me/R/share?text=' + encodeURIComponent(text);
+                }
+            };
+            document.getElementById('line-fallback-retry').onclick = () => {
+                hideLineFallback();
+                window.location.href = 'https://line.me/R/share?text=' + encodeURIComponent(text);
+            };
+            window.location.href = 'line://msg/text/' + encodeURIComponent(text);
+            lineFallbackTimer = setTimeout(() => {
+                if (document.visibilityState === 'visible') {
+                    document.getElementById('line-fallback').classList.remove('hidden');
+                }
+            }, 2000);
+        }
+
+        window.hideLineFallback = function() {
+            clearTimeout(lineFallbackTimer);
+            document.getElementById('line-fallback').classList.add('hidden');
+        };
+
+        // LINEアプリに切り替わったら予備の表示は出さない
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') clearTimeout(lineFallbackTimer);
+        });
+
+        function copySilently(text) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).catch(() => {});
+                    return;
+                }
+            } catch (e) {}
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(textArea);
         }
 
         function executeCopy(text) {
