@@ -496,8 +496,8 @@
             }
         }
 
-        // ホーム画面から開いたアプリ（iPhone）では https の line.me だとLINEアプリに渡らないことがあるため、
-        // アプリ用の line:// で開く。念のため文面をコピーしておき、開けなかったら予備の送り方を出す
+        // ホーム画面から開いたアプリなどでは https の line.me だとLINEアプリに渡らないことがあるため、
+        // iPhone はアプリ用の line://、Android は intent:// で開く。念のため文面をコピーしておき、開けなかったら予備の送り方を出す
         let lineFallbackTimer = null;
         function openLine(text) {
             copySilently(text);
@@ -514,7 +514,14 @@
                 hideLineFallback();
                 window.location.href = 'https://line.me/R/share?text=' + encodeURIComponent(text);
             };
-            window.location.href = 'line://msg/text/' + encodeURIComponent(text);
+            const encoded = encodeURIComponent(text);
+            if (/Android/i.test(navigator.userAgent)) {
+                // Android（Chrome）は intent:// でLINEアプリを指定して開く。アプリが無ければ line.me の共有ページへ
+                const fallback = encodeURIComponent('https://line.me/R/share?text=' + encoded);
+                window.location.href = `intent://msg/text/${encoded}#Intent;scheme=line;package=jp.naver.line.android;S.browser_fallback_url=${fallback};end`;
+            } else {
+                window.location.href = 'line://msg/text/' + encoded;
+            }
             lineFallbackTimer = setTimeout(() => {
                 if (document.visibilityState === 'visible') {
                     document.getElementById('line-fallback').classList.remove('hidden');
