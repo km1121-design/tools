@@ -391,11 +391,7 @@
         // 店舗ごとの納品完了をLINEで報告
         window.reportStoreLine = function(id) {
             const item = routeList.find(i => i.id === id);
-            let text = `【納品完了】${item.name}\n`;
-            if (completedAt[id]) text += `時刻: ${completedAt[id]}\n`;
-            text += `箱数: ${qtyOf(id)}箱\n`;
-            if (item.payment && collections[id]) text += `集金: ${yen(collections[id])}\n`;
-            deliver(text.trimEnd(), 'line');
+            deliver(`${item.name} 完了`, 'line');
         };
 
         window.moveItem = function(index, dir) {
