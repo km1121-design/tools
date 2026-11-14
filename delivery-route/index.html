@@ -102,7 +102,7 @@
         let showSkipped = false;
 
         // 保存（このデバイスのブラウザに保存。日付が変わったら箱数・状況はリセット、順序は引き継ぐ）
-        const STORAGE_KEY = 'delivery-route-state-v2';
+        const STORAGE_KEY = 'delivery-route-state-v3';
 
         function todayKey() {
             return new Date().toLocaleDateString('ja-JP');
@@ -298,7 +298,7 @@
 
         window.changeQty = function(id, delta) {
             if (isEditMode) return;
-            const current = quantities[id] || 0;
+            const current = qtyOf(id);
             quantities[id] = Math.max(0, current + delta);
             render();
         };
@@ -342,9 +342,15 @@
             if (el) el.innerHTML = changeHTML(id);
         }
 
+        // 箱数の初期値は1（全店舗配送あり）。−で0にすると「配送なし」扱い
+        const DEFAULT_QTY = 1;
+        function qtyOf(id) {
+            return quantities[id] === undefined ? DEFAULT_QTY : quantities[id];
+        }
+
         // 箱数0の店舗は自動で「配送なし」扱い
         function isDelivering(item) {
-            return itemStatuses[item.id] !== 'skipped' && (quantities[item.id] || 0) > 0;
+            return itemStatuses[item.id] !== 'skipped' && qtyOf(item.id) > 0;
         }
 
         function collectionTotal() {
@@ -379,7 +385,7 @@
             let totalB = 0;
             routeList.forEach((item) => {
                 if (isDelivering(item)) {
-                    const q = quantities[item.id] || 0;
+                    const q = qtyOf(item.id);
                     text += `${order}. ${item.name}: ${q}箱${item.payment && collections[item.id] ? ` (集金 ${yen(collections[item.id])})` : ''}\n`;
                     order++;
                     activeCount++;
@@ -399,7 +405,7 @@
             let totalB = 0;
             routeList.forEach((item) => {
                 if (isDelivering(item)) {
-                    const q = quantities[item.id] || 0;
+                    const q = qtyOf(item.id);
                     const mark = itemStatuses[item.id] === 'completed' ? '完了' : '未完';
                     text += `${order}. ${item.name}: ${q}箱 [${mark}]\n`;
                     if (itemStatuses[item.id] === 'completed') completedCount++;
@@ -467,7 +473,7 @@
             routeList.forEach(item => {
                 if (isDelivering(item)) {
                     activeCount++;
-                    totalB += (quantities[item.id] || 0);
+                    totalB += qtyOf(item.id);
                     if (itemStatuses[item.id] === 'completed') completedCount++;
                 }
             });
@@ -515,7 +521,7 @@
 
             const renderCard = (item, index, number) => {
                 let html = '';
-                const q = quantities[item.id] || 0;
+                const q = qtyOf(item.id);
                 const status = itemStatuses[item.id];
                 const isCompleted = status === 'completed';
                 const isAutoSkipped = q === 0 && status !== 'skipped' && !isCompleted;
@@ -712,7 +718,7 @@
 
             routeList.filter(isDelivering).forEach((item, index) => {
                 const isCompleted = itemStatuses[item.id] === 'completed';
-                const q = quantities[item.id] || 0;
+                const q = qtyOf(item.id);
 
                 activeCount++;
                 totalB += q;
