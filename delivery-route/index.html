@@ -101,6 +101,7 @@
         let isEditMode = false;
         let showReport = false;
         let showSkipped = false;
+        let selected = new Set(); // まとめて完了するためにチェックした店舗
 
         // 保存（このデバイスのブラウザに保存。日付が変わったら箱数・状況はリセット、順序は引き継ぐ）
         const STORAGE_KEY = 'delivery-route-state-v3';
@@ -383,7 +384,27 @@
         };
 
         // 「納品完了」ボタン：完了にして、そのままLINEの送信画面を開く
+        window.toggleSelect = function(id) {
+            if (selected.has(id)) selected.delete(id); else selected.add(id);
+            render();
+        };
+
+        // チェックした店舗をまとめて完了にし、1通のLINEで報告
+        window.completeSelected = function() {
+            const items = routeList.filter(item => selected.has(item.id));
+            if (!items.length) return;
+            const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            items.forEach(item => {
+                itemStatuses[item.id] = 'completed';
+                completedAt[item.id] = time;
+            });
+            selected.clear();
+            render();
+            deliver(items.map(item => `${item.name} 完了`).join('\n'), 'line');
+        };
+
         window.completeStore = function(id) {
+            selected.delete(id);
             setStatus(id, 'completed');
             reportStoreLine(id);
         };
@@ -562,6 +583,8 @@
                 const isAutoSkipped = q === 0 && status !== 'skipped' && !isCompleted;
                 const isSkipped = status === 'skipped' || isAutoSkipped;
                 const isCollapsed = isCompleted || isSkipped;
+                const canSelect = !isCollapsed && !isEditMode;
+                const isSelected = canSelect && selected.has(item.id);
                 // 車ルートでナビを即開始（スマホの Google マップアプリで開く）
                 const pin = getPin(item.id);
                 const destination = pin ? `${pin.lat},${pin.lng}` : (item.address.startsWith('東京都') ? '' : '東京都') + item.address;
@@ -569,10 +592,13 @@
 
                 html += `
                     <div class="bg-white rounded-xl shadow-sm transition-all duration-300 border-l-4 overflow-hidden
-                        ${isSkipped ? 'border-gray-300 opacity-60 bg-gray-50 mb-2' : isCompleted ? 'border-green-400 opacity-90 bg-green-50 mb-2' : 'border-blue-500 mb-4'}">
+                        ${isSkipped ? 'border-gray-300 opacity-60 bg-gray-50 mb-2' : isCompleted ? 'border-green-400 opacity-90 bg-green-50 mb-2' : 'border-blue-500 mb-4'} ${isSelected ? 'ring-2 ring-green-500' : ''}">
                         <div class="${isCollapsed ? 'p-3' : 'p-4'}">
                             <div class="flex justify-between items-center ${!isCollapsed ? 'mb-3' : ''}">
                                 <div class="flex items-center gap-2 overflow-hidden">
+                                    ${canSelect ? `<button onclick="toggleSelect(${item.id})" class="w-7 h-7 shrink-0 rounded-md border-2 flex items-center justify-center ${isSelected ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-transparent'}" title="まとめて完了に選ぶ">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </button>` : ''}
                                     <span class="text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${isSkipped ? 'bg-gray-400' : isCompleted ? 'bg-green-500' : 'bg-blue-500'}">
                                         ${number || '-'}
                                     </span>
@@ -738,6 +764,18 @@
                         skipped.forEach(([item, index]) => { html += renderCard(item, index, null); });
                     }
                 }
+            }
+
+            // チェックした店舗があれば、画面下にまとめて完了のバーを出す
+            const selCount = isEditMode ? 0 : routeList.filter(item => selected.has(item.id) && isDelivering(item) && itemStatuses[item.id] !== 'completed').length;
+            if (selCount) {
+                html += `
+                    <div class="fixed left-1/2 -translate-x-1/2 bottom-4 z-30 w-[92%] max-w-md">
+                        <button onclick="completeSelected()" class="w-full py-4 rounded-2xl bg-[#06C755] text-white text-lg font-bold shadow-xl">
+                            ✓ ${selCount}件まとめて完了 → LINE報告
+                        </button>
+                    </div>
+                `;
             }
 
             html += `</main></div>`;
