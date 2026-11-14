@@ -68,30 +68,27 @@
     <script>
         // 納品先データ
         const initialDeliveryData = [
-            { id: 1, name: "白樺", address: "銀座7-2-16-6階", category: "", payment: "", frequency: "週1~2", note: "人が居たら店内へ(指示有り)、居なければEV降りて左側に置く。直送納品されている場合の発泡もあれば回収。", timeLimit: "" },
-            { id: 2, name: "エスペロ", address: "銀座5-6-10 B1F", category: "洋食", payment: "", frequency: "ほぼ毎日少量", note: "店内調理場まで、中身だけ。", timeLimit: "" },
-            { id: 3, name: "わびさび本店", address: "新橋2-9-6烏森神社ビル3F", category: "居酒屋", payment: "", frequency: "月~金", note: "人がいれば店内入って正面のキッチンに中身だけ、いなければEV降りて右側に置く。", timeLimit: "" },
-            { id: 4, name: "福炎や", address: "新橋2-9-6烏森神社ビル4F", category: "居酒屋", payment: "", frequency: "月~金", note: "中身＋氷もお渡し。＊氷お渡しを基本この店舗のみ", timeLimit: "" },
-            { id: 5, name: "ダイヤモンドフィッシュ", address: "新橋2-9-6烏森神社ビル5F", category: "洋食", payment: "", frequency: "月~金", note: "人がいれば中身だけ、いなければEV降りて左側に置く。", timeLimit: "" },
-            { id: 6, name: "ひろ", address: "新橋2-2-4パイオニアビル3F", category: "居酒屋", payment: "", frequency: "週3~4", note: "人がいれば店内カウンターへ中身だけ、居なければEV降りて左側に置く。前日の発泡あれば回収。", timeLimit: "" },
-            { id: 7, name: "多助", address: "新橋3-2-3ルグランシェビル2F", category: "居酒屋", payment: "", frequency: "週3~4", note: "店内入って直ぐの御座敷前で確認。量によってはそのまま中身をもっていく場合と、発泡ごと一旦厨房へもっていき中身を取り出したのち、発泡（＋氷）をもらう場合あり。（指示に従う）店外奥に発泡ある場合があるので確認。", timeLimit: "" },
-            { id: 8, name: "のとじ 能登治", address: "新橋3-7-5能登治ビル1F", category: "蕎麦屋", payment: "", frequency: "木", note: "地下に降り、中身だけ。蒲鉾は右側冷蔵庫中段、冷凍エビは左側冷凍庫に先入れ先出し。伝票はマグネットで挟む。納品後1階へ声掛け。", timeLimit: "" },
-            { id: 9, name: "Hachi", address: "日本橋小舟町14-12", category: "洋食", payment: "", frequency: "週2~3", note: "★後回しでもOK。（桃源郷11時半間に合わない場合はカポペリのあとにまわす）人がいれば店内入って足元へ、居なければ店舗前に置く。", timeLimit: "" },
-            { id: 10, name: "和食の故郷", address: "内神田2-14-13高芳ビルB1F", category: "居酒屋", payment: "", frequency: "週3~4", note: "階段コーナーに置く。発泡あれば回収。", timeLimit: "" },
-            { id: 11, name: "赤兵衛", address: "内神田3-22-1勝田ビル2F", category: "居酒屋", payment: "", frequency: "週3~4", note: "店舗入口前（2階）に置く。シャッター閉まってたら開けて2階の店舗入口前に置く。発泡は1階外に置いてあれば回収。", timeLimit: "" },
-            { id: 12, name: "しょうげつあん 松月庵", address: "神田司町2-6-19", category: "蕎麦屋", payment: "集金", frequency: "月・金", note: "正面入口から入り、厨房までいき、奥の地下に降り冷蔵庫に先入れ先出しで中身だけ。蒲鉾(中段右扉)、鴨肉(上段左扉)、海老(上段右扉)、乾き物は手渡し。", timeLimit: "12時〜13時 納品NG" },
-            { id: 13, name: "とうげんきょう 桃源郷", address: "神田小川町1-11クロスタB1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "★11時半までに行く。出発が遅れた場合は能登路のあとに向かうのが良い。店内カウンターへ中身だけ。ランチタイムに重なる際は要注意。万が一11時半以降でランチタイムにかさなってしまった場合は、カウンターへおけないので指示に従う。その際はきちんと謝罪。", timeLimit: "11時半までに行く" },
-            { id: 14, name: "ふじみ 藤海", address: "外神田2-13-10ダイニチビルB1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "EV降りた正面に置く。（店内人いても置き配でOK）前日の発泡回収。", timeLimit: "" },
-            { id: 15, name: "ともえや 巴屋", address: "本郷2-13-10", category: "蕎麦屋", payment: "集金", frequency: "月", note: "店舗入口は使用禁止。必ず向かって右扉側から入る。厨房の奥で中身だけ。", timeLimit: "12時〜13時 納品NG" },
-            { id: 16, name: "あさひや", address: "本郷6-17-6", category: "蕎麦屋", payment: "集金", frequency: "月・火", note: "店舗入口は使用禁止。向かって右側の裏口側から入る。集金金額を口頭で伝える。左側の台の上に中身だけ。冷凍エビも箱から出して箱回収。", timeLimit: "12時〜13時 納品NG" },
-            { id: 17, name: "カポペリカーノ", address: "本郷7-3-1医学部教育研究棟", category: "洋食(13F)・おにぎり(1F)", payment: "", frequency: "週2~3", note: "納品書は13Fへ(1Fのみ納品時は1FでOK)。1Fはおにぎり具材、13Fは店舗入口向かって左の青扉開けた左の台へ納品。直接はNGなので（汚いため）店舗の方にきちんと「海老徳です」と声をかけ、トレイをだしていただき、トレイに納品。", timeLimit: "" },
-            { id: 18, name: "りょうざんぱく 梁山泊", address: "墨田区緑2-14-3", category: "居酒屋", payment: "", frequency: "火・金", note: "店内奥のカウンターへ中身だけ。", timeLimit: "" },
-            { id: 19, name: "いっそん 一村", address: "江東区深川2-1-2岡野ビル2F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "人がいれば店内カウンターへ発泡ごとおく。居なければEV降りて置く。前日の発泡回収。", timeLimit: "" },
-            { id: 20, name: "ぞろめ 沿露目", address: "江東区富岡1-12-6阿久津ビル1F", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "店内すぐのカウンターへ中身だけ。", timeLimit: "" },
-            { id: 21, name: "ぱんから 蛮殼", address: "月島1-25-7", category: "居酒屋", payment: "", frequency: "ほぼ毎日", note: "店内奥カウンター下へ発泡ごとおく。入口付近にある前日の発泡を回収。", timeLimit: "" },
-            { id: 22, name: "やなぎ家", address: "足立区柳原2-18-8", category: "蕎麦屋", payment: "集金", frequency: "土(月に1~2)", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" },
-            { id: 23, name: "清かわ", address: "江戸川区南葛西2-22-1", category: "蕎麦屋", payment: "集金", frequency: "土", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" },
-            { id: 24, name: "そうま 相馬屋", address: "中央区佃2-6-3", category: "蕎麦屋", payment: "集金", frequency: "月に1~2", note: "店内カウンターへ中身だけ。", timeLimit: "12時〜13時 納品NG" }
+            { id: 1, name: "ドリームタウン 保育園", address: "東京都板橋区向原3丁目7-7", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 2, name: "ドリームタウン レストラン", address: "東京都板橋区向原3丁目7-7", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 3, name: "バビロン 1F", address: "東京都新宿区歌舞伎町1-3-10", category: "", payment: "", frequency: "", note: "扉前に置き配可", timeLimit: "" },
+            { id: 4, name: "夜のケーキ屋さん", address: "東京都新宿区歌舞伎町1丁目11-12 KIビル 1F", category: "", payment: "", frequency: "", note: "シャッター開けて中に置き配", timeLimit: "11時まで" },
+            { id: 5, name: "新宿萬太郎", address: "東京都新宿区歌舞伎町1丁目16-1 今宮ビル 3階", category: "", payment: "", frequency: "", note: "ALSOK解除 鍵有り", timeLimit: "11時まで" },
+            { id: 6, name: "強飲", address: "東京都新宿区歌舞伎町1-1-7 新宿ゴールデン街 花園3番街", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 7, name: "ラッキー", address: "東京都新宿区歌舞伎町1丁目1-8 明るい花園 3番街", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 8, name: "NEO新宿アツシ", address: "東京都新宿区新宿3丁目3-7 三慶ビル 4F", category: "", payment: "", frequency: "", note: "", timeLimit: "14時まで" },
+            { id: 9, name: "菜食酒場レタスや", address: "東京都新宿区新宿3丁目34-15 ニュー新宿ビル 2F", category: "", payment: "", frequency: "", note: "キーボックス 2525", timeLimit: "11時まで" },
+            { id: 10, name: "もつ焼きいしん", address: "東京都新宿区西新宿1丁目3-13 I&Kビル 地下1階", category: "", payment: "", frequency: "", note: "", timeLimit: "11時まで" },
+            { id: 11, name: "JB's TOKYO 代々木店", address: "東京都渋谷区代々木1丁目33-3", category: "", payment: "", frequency: "", note: "", timeLimit: "10時まで" },
+            { id: 12, name: "パニーニ一番", address: "東京都渋谷区千駄ケ谷1丁目21-3", category: "", payment: "", frequency: "", note: "", timeLimit: "11時まで" },
+            { id: 13, name: "クレープとエスプレッソとれいわ", address: "東京都渋谷区渋谷1丁目11-1 ヒューリック渋谷美竹通りビル", category: "", payment: "", frequency: "", note: "", timeLimit: "11時まで" },
+            { id: 14, name: "WE ARE THE FARM 渋谷店", address: "東京都渋谷区松濤1丁目28-11 Pigeon髙田ビル 1F", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 15, name: "はんばーぐとおむらいすのお店 いくら", address: "東京都渋谷区円山町5-3 MIEUXビル 1F", category: "", payment: "", frequency: "", note: "", timeLimit: "10時半まで" },
+            { id: 16, name: "JB's TOKYO ミヤシタパーク店", address: "東京都渋谷区神宮前6丁目20-10 MIYASHITA PARK North, South 2F", category: "", payment: "", frequency: "", note: "", timeLimit: "11時まで" },
+            { id: 17, name: "タナカたなか", address: "東京都世田谷区北沢2丁目9-21", category: "", payment: "", frequency: "", note: "キーボックス 204", timeLimit: "14時まで（土日11時まで）" },
+            { id: 18, name: "BURGER FACTORY", address: "東京都目黒区上目黒2丁目43-11 小川ビル 1F", category: "", payment: "", frequency: "", note: "", timeLimit: "" },
+            { id: 19, name: "en。", address: "東京都品川区東五反田1丁目3-10 明河ビル 1F", category: "", payment: "", frequency: "", note: "", timeLimit: "13時まで" },
+            { id: 20, name: "ルポン 恵比寿", address: "東京都渋谷区恵比寿西1丁目7-13 日基ビル 1F A号", category: "", payment: "", frequency: "", note: "", timeLimit: "14時まで" },
+            { id: 21, name: "ルポンサンク", address: "東京都渋谷区恵比寿南1丁目8-8 1F", category: "", payment: "", frequency: "", note: "", timeLimit: "" }
         ];
 
         // 状態管理
@@ -105,7 +102,7 @@
         let showSkipped = false;
 
         // 保存（このデバイスのブラウザに保存。日付が変わったら箱数・状況はリセット、順序は引き継ぐ）
-        const STORAGE_KEY = 'delivery-route-state-v1';
+        const STORAGE_KEY = 'delivery-route-state-v2';
 
         function todayKey() {
             return new Date().toLocaleDateString('ja-JP');
@@ -158,7 +155,7 @@
         const SHARED_PINS = {};
 
         // この端末で修正したピン位置（店舗ごとの緯度経度）。日付が変わっても残す
-        const PIN_KEY = 'delivery-route-pins-v1';
+        const PIN_KEY = 'delivery-route-pins-v2';
         let pins = {};
         try { pins = JSON.parse(localStorage.getItem(PIN_KEY)) || {}; } catch (e) {}
 
@@ -526,7 +523,7 @@
                 const isCollapsed = isCompleted || isSkipped;
                 // 車ルートでナビを即開始（スマホの Google マップアプリで開く）
                 const pin = getPin(item.id);
-                const destination = pin ? `${pin.lat},${pin.lng}` : '東京都' + item.address;
+                const destination = pin ? `${pin.lat},${pin.lng}` : (item.address.startsWith('東京都') ? '' : '東京都') + item.address;
                 const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving&dir_action=navigate`;
 
                 html += `
