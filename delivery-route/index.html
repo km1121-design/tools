@@ -63,6 +63,10 @@
             </div>
         </div>
     </div>
+    <div id="line-snack" class="hidden fixed left-1/2 -translate-x-1/2 bottom-5 z-50 w-[92%] max-w-md bg-gray-900/95 text-white rounded-2xl shadow-lg p-3 flex items-center gap-3">
+        <span id="line-snack-text" class="flex-1 text-sm font-bold truncate"></span>
+        <button id="line-snack-btn" class="shrink-0 px-4 py-2 rounded-xl bg-[#06C755] text-white font-bold text-sm">LINEで報告</button>
+    </div>
     <div id="toast">コピーしました！LINE等に貼り付けてください。</div>
 
     <script>
@@ -97,6 +101,7 @@
         let itemStatuses = {};
         let collections = {}; // 集金額（円）
         let received = {}; // お預かり額（円）
+        let completedAt = {}; // 納品完了の時刻（HH:MM）
         let isEditMode = false;
         let showReport = false;
         let showSkipped = false;
@@ -116,7 +121,8 @@
                     quantities,
                     itemStatuses,
                     collections,
-                    received
+                    received,
+                    completedAt
                 }));
             } catch (e) {}
         }
@@ -138,6 +144,7 @@
                 itemStatuses = saved.itemStatuses || {};
                 collections = saved.collections || {};
                 received = saved.received || {};
+                completedAt = saved.completedAt || {};
             }
         }
 
@@ -147,6 +154,7 @@
             itemStatuses = {};
             collections = {};
             received = {};
+            completedAt = {};
             render();
             showToast('リセットしました');
         };
@@ -370,7 +378,37 @@
             } else {
                 itemStatuses[id] = status;
             }
+            if (itemStatuses[id] === 'completed') {
+                completedAt[id] = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                delete completedAt[id];
+            }
             render();
+        };
+
+        // 「納品完了」ボタン：完了にして、下に「LINEで報告」を数秒表示
+        let lineSnackTimer = null;
+        window.completeStore = function(id) {
+            setStatus(id, 'completed');
+            const item = routeList.find(i => i.id === id);
+            document.getElementById('line-snack-text').innerText = `✓ ${item.name} 納品完了`;
+            document.getElementById('line-snack-btn').onclick = () => {
+                document.getElementById('line-snack').classList.add('hidden');
+                reportStoreLine(id);
+            };
+            document.getElementById('line-snack').classList.remove('hidden');
+            clearTimeout(lineSnackTimer);
+            lineSnackTimer = setTimeout(() => document.getElementById('line-snack').classList.add('hidden'), 8000);
+        };
+
+        // 店舗ごとの納品完了をLINEで報告
+        window.reportStoreLine = function(id) {
+            const item = routeList.find(i => i.id === id);
+            let text = `【納品完了】${item.name}\n`;
+            if (completedAt[id]) text += `時刻: ${completedAt[id]}\n`;
+            text += `箱数: ${qtyOf(id)}箱\n`;
+            if (item.payment && collections[id]) text += `集金: ${yen(collections[id])}\n`;
+            deliver(text.trimEnd(), 'line');
         };
 
         window.moveItem = function(index, dir) {
@@ -559,7 +597,6 @@
                                         ${item.name}
                                     </h2>
                                     ${item.payment && isCompleted ? `<span class="text-xs font-bold text-white bg-red-500 px-2 py-1 rounded-full shrink-0">💴${collections[item.id] ? yen(collections[item.id]) : item.payment}</span>` : ''}
-                                    ${isCompleted ? `<span class="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded-full shrink-0">${q}箱</span>` : ''}
                                 </div>
                 `;
 
@@ -575,7 +612,8 @@
                     html += `
                                 <div class="flex items-center gap-2 shrink-0">
                                     ${isCompleted
-                                        ? `<span class="text-xs font-bold text-white bg-green-500 px-2.5 py-1.5 rounded-full">✓ 完了</span>`
+                                        ? `<span class="text-xs font-bold text-white bg-green-500 px-2.5 py-1.5 rounded-full">✓ ${completedAt[item.id] || '完了'}</span>
+                                           <button onclick="reportStoreLine(${item.id})" class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#06C755]">LINE</button>`
                                         : `<span class="text-xs font-bold text-white bg-gray-500 px-2.5 py-1.5 rounded-full">配送なし</span>`}
                                     <button onclick="setStatus(${item.id}, '${isCompleted ? 'completed' : 'skipped'}')" class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 bg-white border border-gray-300">
                                         戻す
@@ -656,7 +694,7 @@
                     }
                     if (!isEditMode) {
                         html += `
-                                <button onclick="setStatus(${item.id}, 'completed')" class="w-full mt-4 py-3.5 rounded-xl bg-green-500 active:bg-green-600 text-white text-lg font-bold shadow flex items-center justify-center gap-2">
+                                <button onclick="completeStore(${item.id})" class="w-full mt-4 py-3.5 rounded-xl bg-green-500 active:bg-green-600 text-white text-lg font-bold shadow flex items-center justify-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                     納品完了
                                 </button>
