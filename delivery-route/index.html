@@ -353,6 +353,11 @@
             return itemStatuses[item.id] !== 'skipped' && qtyOf(item.id) > 0;
         }
 
+        // 集金ありで配送する店舗があるか（無ければ集金の表示を出さない）
+        function hasCollection() {
+            return routeList.some(item => item.payment && isDelivering(item));
+        }
+
         function collectionTotal() {
             return routeList.reduce((sum, item) => (
                 item.payment && isDelivering(item) ? sum + (collections[item.id] || 0) : sum
@@ -377,7 +382,7 @@
             render();
         };
 
-        window.copyDeparture = function() {
+        window.copyDeparture = function(mode) {
             const today = new Date().toLocaleDateString('ja-JP');
             let text = `【出発報告】${today}\n\n`;
             let order = 1;
@@ -392,11 +397,11 @@
                     totalB += q;
                 }
             });
-            text += `\n配送予定件数: ${activeCount}件\n総予定箱数: ${totalB} 箱\n集金予定合計: ${yen(collectionTotal())}\n\n出発します。よろしくお願いします。`;
-            executeCopy(text);
+            text += `\n配送予定件数: ${activeCount}件\n総予定箱数: ${totalB} 箱\n${hasCollection() ? `集金予定合計: ${yen(collectionTotal())}\n` : ''}\n出発します。よろしくお願いします。`;
+            deliver(text, mode);
         };
 
-        window.copyCompletion = function() {
+        window.copyCompletion = function(mode) {
             const today = new Date().toLocaleDateString('ja-JP');
             let text = `【完了報告】${today}\n\n`;
             let order = 1;
@@ -428,8 +433,17 @@
             }
 
             text += `\nお疲れ様でした。`;
-            executeCopy(text);
+            deliver(text, mode);
         };
+
+        // 'line' ならLINEアプリを開いて送り先を選ぶ画面へ。それ以外はコピー
+        function deliver(text, mode) {
+            if (mode === 'line') {
+                window.location.href = 'https://line.me/R/share?text=' + encodeURIComponent(text);
+            } else {
+                executeCopy(text);
+            }
+        }
 
         function executeCopy(text) {
             const textArea = document.createElement("textarea");
@@ -766,18 +780,26 @@
                                     <span class="block text-xs text-gray-500">総箱数</span>
                                     <span class="text-xl font-bold tabular-nums">${totalB} <span class="text-sm font-normal">箱</span></span>
                                 </div>
+${hasCollection() ? `
                                 <div class="col-span-2 bg-red-50 rounded-lg p-3 border border-red-100 flex justify-between items-center">
                                     <span class="text-xs text-red-700 font-bold">💴 集金合計</span>
                                     <span class="text-xl font-bold tabular-nums text-red-700">${yen(collectionTotal())}</span>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3 mb-4 no-print">
-                            <button onclick="copyDeparture()" class="py-3 rounded-xl bg-blue-600 text-white font-bold shadow-sm active:bg-blue-700">
+                            <button onclick="copyDeparture('line')" class="py-3 rounded-xl bg-[#06C755] text-white font-bold shadow-sm">
+                                出発報告をLINEで送る
+                            </button>
+                            <button onclick="copyCompletion('line')" class="py-3 rounded-xl bg-[#06C755] text-white font-bold shadow-sm">
+                                完了報告をLINEで送る
+                            </button>
+                            <button onclick="copyDeparture()" class="py-2 rounded-lg bg-white text-blue-700 border border-blue-200 text-sm font-bold">
                                 出発報告をコピー
                             </button>
-                            <button onclick="copyCompletion()" class="py-3 rounded-xl bg-green-600 text-white font-bold shadow-sm active:bg-green-700">
+                            <button onclick="copyCompletion()" class="py-2 rounded-lg bg-white text-green-700 border border-green-200 text-sm font-bold">
                                 完了報告をコピー
                             </button>
                         </div>
